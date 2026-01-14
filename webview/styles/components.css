@@ -125,7 +125,6 @@
 }
 
 .result-primary {
-  font-weight: 500;
   color: var(--fg-color);
   white-space: nowrap;
   overflow: hidden;

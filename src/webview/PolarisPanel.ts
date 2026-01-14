@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { SearchMode, UIStateDTO } from '../core/types';
 import { ExtensionMessage, WebviewMessage, MessageHandler } from './messageProtocol';
-import { getConfig, onConfigChange } from '../config/settings';
+import { getConfig, onConfigChange, onColorThemeChange } from '../config/settings';
 
 export class PolarisPanel {
   public static currentPanels: Map<string, PolarisPanel> = new Map();
@@ -102,10 +102,13 @@ export class PolarisPanel {
     });
     this.disposables.push(configDisposable);
 
-    this.postMessage({
-      type: 'setConfig',
-      config: getConfig(),
+    const colorThemeDisposable = onColorThemeChange(() => {
+      this.postMessage({
+        type: 'setConfig',
+        config: getConfig(),
+      });
     });
+    this.disposables.push(colorThemeDisposable);
   }
 
   public postMessage(message: ExtensionMessage): void {
@@ -116,6 +119,7 @@ export class PolarisPanel {
     switch (message.type) {
       case 'ready':
         this.postMessage({ type: 'setUIState', state: this.uiState });
+        this.postMessage({ type: 'setConfig', config: getConfig() });
         break;
       case 'queryChanged':
         this.handleQueryChanged(message.query, message.includeGlobs, message.excludeGlobs);

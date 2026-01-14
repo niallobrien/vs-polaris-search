@@ -4,7 +4,7 @@ import { ExtensionMessage } from '../src/webview/messageProtocol';
 
 const app = new App();
 
-vscode.onMessage((message: unknown) => {
+vscode.onMessage(async (message: unknown) => {
   const msg = message as ExtensionMessage;
   
   switch (msg.type) {
@@ -15,7 +15,7 @@ vscode.onMessage((message: unknown) => {
       app.setSearchResults(msg.results, msg.totalCount);
       break;
     case 'setPreview':
-      app.setPreview(msg.preview);
+      await app.setPreview(msg.preview);
       break;
     case 'setBusy':
       app.setBusy(msg.busy);
@@ -24,9 +24,7 @@ vscode.onMessage((message: unknown) => {
       app.setUIState(msg.state);
       break;
     case 'setConfig':
-      app.setConfig(msg.config);
-      break;
-    case 'setTheme':
+      await app.setConfig(msg.config);
       break;
     case 'focusSearchInput':
       app.focusSearchInput();

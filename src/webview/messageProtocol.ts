@@ -8,7 +8,6 @@ import {
 } from '../core/types';
 
 export type ExtensionMessage =
-  | { type: 'setTheme'; theme: string }
   | { type: 'setBusy'; busy: boolean }
   | { type: 'setFileResults'; results: FileResultDTO[] }
   | { type: 'setSearchResults'; results: SearchResultDTO[]; totalCount: number }

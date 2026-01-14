@@ -6,6 +6,7 @@ import { SearchDetails } from './SearchDetails';
 import { PreviewPane } from './PreviewPane';
 import { FileResultDTO, PreviewDTO, ConfigDTO, UIStateDTO, SearchResultDTO } from '../../src/core/types';
 import { vscode } from '../services/vscode';
+import { highlighter } from '../services/highlighter';
 
 export class App {
   private container: HTMLElement | null = null;
@@ -20,6 +21,7 @@ export class App {
   private currentIncludeGlobs: string[] = [];
   private currentExcludeGlobs: string[] = [];
   private hasSearched: boolean = false;
+  private currentPreviewData: PreviewDTO | null = null;
 
   constructor() {
     this.modeTabs = new ModeTabs();
@@ -57,6 +59,7 @@ export class App {
   }
 
   async setPreview(preview: PreviewDTO): Promise<void> {
+    this.currentPreviewData = preview;
     await this.previewPane.setPreview(preview);
   }
 
@@ -68,8 +71,20 @@ export class App {
     // Don't clear the summary when busy=false, let the results update it
   }
 
-  setConfig(config: ConfigDTO): void {
+  async setConfig(config: ConfigDTO): Promise<void> {
     this.searchInput.setDebounceDelay(config.liveSearchDelay);
+    
+    const previousTheme = highlighter.getTheme();
+    
+    try {
+      await highlighter.setTheme(config.theme);
+      
+      if (previousTheme !== config.theme && this.currentPreviewData) {
+        await this.previewPane.setPreview(this.currentPreviewData);
+      }
+    } catch (error) {
+      console.error('Failed to apply theme:', config.theme, error);
+    }
   }
 
   focusSearchInput(): void {
