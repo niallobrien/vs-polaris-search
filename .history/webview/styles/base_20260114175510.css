@@ -23,6 +23,13 @@ body {
   color: var(--fg-color);
   background: var(--bg-color);
   overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .polaris-app {
@@ -30,11 +37,16 @@ body {
   grid-template-rows: auto 1fr;
   height: 100vh;
   width: 100%;
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
 .polaris-header {
   padding: 8px;
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 .polaris-content {
@@ -43,6 +55,9 @@ body {
   gap: 1px;
   background: var(--border-color);
   overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .polaris-results,
@@ -50,4 +65,7 @@ body {
   background: var(--bg-color);
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
+  contain: layout style paint;
+  transform: translateZ(0);
 }

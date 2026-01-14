@@ -25,6 +25,8 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  min-width: 0;
+  width: 100%;
 }
 
 #search-input {
@@ -79,7 +81,11 @@
 }
 
 .results-list {
+  overflow-y: auto;
   height: 100%;
+  scrollbar-gutter: stable;
+  contain: layout style paint;
+  transform: translateZ(0);
 }
 
 .result-item {
@@ -89,7 +95,6 @@
   padding: 6px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
-  will-change: background-color;
 }
 
 .result-item:hover {
@@ -154,8 +159,13 @@
 }
 
 .preview-pane {
+  overflow-y: auto;
+  overflow-x: hidden;
   height: 100%;
   padding: 0;
+  scrollbar-gutter: stable;
+  contain: layout style paint;
+  transform: translateZ(0);
 }
 
 .preview-header {
@@ -177,18 +187,24 @@
 
 .preview-content {
   padding: 12px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .preview-content pre {
   margin: 0;
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size);
-  line-height: 1.5;
+  line-height: 1;
 }
 
 .preview-content code {
   font-family: inherit;
+  line-height: 1;
+}
+
+.preview-content .line {
+  line-height: 1;
 }
 
 /* Remove Shiki background colors - show only pane's background */
@@ -322,10 +338,14 @@
 
 .highlighted-line {
   display: block;
-  background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.1));
+  background: var(
+    --vscode-editor-lineHighlightBackground,
+    rgba(255, 255, 255, 0.1)
+  );
   margin: 0 -12px;
-  padding: 0 12px;
-  border-left: 3px solid var(--vscode-editorOverviewRuler-findMatchForeground, #f97583);
+  padding: 0 12px 0 9px;
+  border-left: 3px solid
+    var(--vscode-editorOverviewRuler-findMatchForeground, #f97583);
 }
 
 .preview-content.show-line-numbers {
@@ -344,15 +364,11 @@
   counter-increment: line-number;
   content: counter(line-number);
   display: inline-block;
-  width: 5ch;
-  min-width: 5ch;
-  max-width: 5ch;
+  width: 4ch;
   margin-right: 1.5ch;
   text-align: right;
   color: var(--vscode-editorLineNumber-foreground, rgba(255, 255, 255, 0.4));
   user-select: none;
-  flex-shrink: 0;
-  overflow: hidden;
 }
 
 .preview-content.show-line-numbers .line.highlighted-line::before {

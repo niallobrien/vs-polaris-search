@@ -29,7 +29,7 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
-  width: 100%;
+  width: 100vw;
 }
 
 .polaris-header {
@@ -48,6 +48,5 @@ body {
 .polaris-results,
 .polaris-preview {
   background: var(--bg-color);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
 }

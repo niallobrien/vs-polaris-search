@@ -48,8 +48,8 @@ export class ResultsList {
   selectNext(): void {
     if (this.results.length === 0) return;
     
-    this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
-    this.render();
+    const newIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+    this.updateSelection(newIndex);
     this.scrollSelectedIntoView();
     this.notifySelection();
   }
@@ -57,24 +57,22 @@ export class ResultsList {
   selectPrevious(): void {
     if (this.results.length === 0) return;
     
-    this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-    this.render();
+    const newIndex = Math.max(this.selectedIndex - 1, 0);
+    this.updateSelection(newIndex);
     this.scrollSelectedIntoView();
     this.notifySelection();
   }
 
   selectFirst(): void {
     if (this.results.length === 0) return;
-    this.selectedIndex = 0;
-    this.render();
+    this.updateSelection(0);
     this.scrollSelectedIntoView();
     this.notifySelection();
   }
 
   selectLast(): void {
     if (this.results.length === 0) return;
-    this.selectedIndex = this.results.length - 1;
-    this.render();
+    this.updateSelection(this.results.length - 1);
     this.scrollSelectedIntoView();
     this.notifySelection();
   }
@@ -88,9 +86,9 @@ export class ResultsList {
     const firstVisibleIndex = this.findFirstFullyVisibleIndex(container, items);
     const alreadyAtOrAboveFirstVisible = this.selectedIndex <= firstVisibleIndex;
     
-    this.selectedIndex = alreadyAtOrAboveFirstVisible ? 0 : firstVisibleIndex;
+    const newIndex = alreadyAtOrAboveFirstVisible ? 0 : firstVisibleIndex;
     
-    this.render();
+    this.updateSelection(newIndex);
     this.scrollSelectedIntoView();
     this.notifySelection();
   }
@@ -104,11 +102,28 @@ export class ResultsList {
     const lastVisibleIndex = this.findLastFullyVisibleIndex(container, items);
     const alreadyAtOrBelowLastVisible = this.selectedIndex >= lastVisibleIndex;
     
-    this.selectedIndex = alreadyAtOrBelowLastVisible ? this.results.length - 1 : lastVisibleIndex;
+    const newIndex = alreadyAtOrBelowLastVisible ? this.results.length - 1 : lastVisibleIndex;
     
-    this.render();
+    this.updateSelection(newIndex);
     this.scrollSelectedIntoView();
     this.notifySelection();
+  }
+
+  private updateSelection(newIndex: number): void {
+    if (newIndex === this.selectedIndex) return;
+    
+    if (!this.container) {
+      this.selectedIndex = newIndex;
+      return;
+    }
+    
+    const currentItem = this.container.querySelector(`.result-item[data-index="${this.selectedIndex}"]`);
+    currentItem?.classList.remove('selected');
+    
+    const newItem = this.container.querySelector(`.result-item[data-index="${newIndex}"]`);
+    newItem?.classList.add('selected');
+    
+    this.selectedIndex = newIndex;
   }
 
   openSelected(): void {
@@ -135,7 +150,7 @@ export class ResultsList {
     if (!this.container) return;
     
     const selectedItem = this.container.querySelector('.result-item.selected');
-    selectedItem?.scrollIntoView({ block: 'nearest' });
+    selectedItem?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   }
 
   private notifySelection(): void {
@@ -345,8 +360,7 @@ export class ResultsList {
     const index = parseInt(target.dataset.index || '-1', 10);
     
     if (index >= 0 && index < this.results.length) {
-      this.selectedIndex = index;
-      this.render();
+      this.updateSelection(index);
       
       const result = this.results[index];
       if (this.mode === 'files') {

@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { PreviewDTO } from '../../core/types';
+import type { PreviewDTO, SearchOptions } from '../../core/types';
 
 export async function readFilePreview(
   workspaceRoot: string,
   relativePath: string,
-  highlightLine?: number
+  highlightLine?: number,
+  searchTerm?: string,
+  searchOptions?: SearchOptions
 ): Promise<PreviewDTO> {
   const absolutePath = path.join(workspaceRoot, relativePath);
   const uri = vscode.Uri.file(absolutePath);
@@ -19,7 +21,9 @@ export async function readFilePreview(
     path: relativePath,
     content,
     language,
-    highlightLine
+    highlightLine,
+    searchTerm,
+    searchOptions
   };
 }
 

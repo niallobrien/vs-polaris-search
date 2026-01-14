@@ -107,6 +107,16 @@
           "minimum": 100,
           "maximum": 2000,
           "description": "Delay in milliseconds before live search triggers"
+        },
+        "polaris.previewHighlightSearchTerm": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight the search term match in the preview pane"
+        },
+        "polaris.previewShowLineNumbers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show line numbers in the preview pane"
         }
       }
     }

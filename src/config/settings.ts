@@ -22,6 +22,8 @@ export function getConfig(): ConfigDTO {
     theme: themeSetting === 'system' ? resolveSystemTheme() : themeSetting,
     previewLines: config.get<number>('previewLines', 10),
     liveSearchDelay: config.get<number>('liveSearchDelay', 300),
+    previewHighlightSearchTerm: config.get<boolean>('previewHighlightSearchTerm', true),
+    previewShowLineNumbers: config.get<boolean>('previewShowLineNumbers', true),
   };
 }
 

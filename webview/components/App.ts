@@ -63,16 +63,10 @@ export class App {
     await this.previewPane.setPreview(preview);
   }
 
-  setBusy(busy: boolean): void {
-    if (busy) {
-      this.hasSearched = true;
-      this.updateResultSummary('Searching...');
-    }
-    // Don't clear the summary when busy=false, let the results update it
-  }
-
   async setConfig(config: ConfigDTO): Promise<void> {
     this.searchInput.setDebounceDelay(config.liveSearchDelay);
+    
+    this.previewPane.setConfig(config);
     
     const previousTheme = highlighter.getTheme();
     
@@ -84,6 +78,13 @@ export class App {
       }
     } catch (error) {
       console.error('Failed to apply theme:', config.theme, error);
+    }
+  }
+
+  setBusy(busy: boolean): void {
+    if (busy) {
+      this.hasSearched = true;
+      this.updateResultSummary('Searching...');
     }
   }
 

@@ -25,6 +25,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  
 }
 
 #search-input {
@@ -79,6 +80,7 @@
 }
 
 .results-list {
+  overflow-y: auto;
   height: 100%;
 }
 
@@ -89,7 +91,6 @@
   padding: 6px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
-  will-change: background-color;
 }
 
 .result-item:hover {
@@ -154,6 +155,7 @@
 }
 
 .preview-pane {
+  overflow-y: auto;
   height: 100%;
   padding: 0;
 }
@@ -328,36 +330,3 @@
   border-left: 3px solid var(--vscode-editorOverviewRuler-findMatchForeground, #f97583);
 }
 
-.preview-content.show-line-numbers {
-  --line-number-start: 1;
-}
-
-.preview-content.show-line-numbers pre {
-  counter-reset: line-number calc(var(--line-number-start) - 1);
-}
-
-.preview-content.show-line-numbers .line {
-  display: block;
-}
-
-.preview-content.show-line-numbers .line::before {
-  counter-increment: line-number;
-  content: counter(line-number);
-  display: inline-block;
-  width: 5ch;
-  min-width: 5ch;
-  max-width: 5ch;
-  margin-right: 1.5ch;
-  text-align: right;
-  color: var(--vscode-editorLineNumber-foreground, rgba(255, 255, 255, 0.4));
-  user-select: none;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.preview-content.show-line-numbers .line.highlighted-line::before {
-  color: var(
-    --vscode-editorLineNumber-activeForeground,
-    var(--vscode-editorLineNumber-foreground)
-  );
-}

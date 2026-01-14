@@ -244,7 +244,22 @@ export class PolarisPanel {
 
     try {
       const { readFilePreview } = await import('../adapters/workspace/fileSystem');
-      const preview = await readFilePreview(workspaceRoot, filePath, line);
+      
+      const isContentSearch = this.uiState.mode === 'findInFiles';
+      const searchTerm = isContentSearch ? this.lastQuery : undefined;
+      const searchOptions = isContentSearch ? {
+        matchCase: this.uiState.matchCase,
+        useRegex: this.uiState.useRegex,
+        matchWholeWord: this.uiState.matchWholeWord
+      } : undefined;
+      
+      const preview = await readFilePreview(
+        workspaceRoot, 
+        filePath, 
+        line,
+        searchTerm,
+        searchOptions
+      );
       
       this.postMessage({
         type: 'setPreview',
