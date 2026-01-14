@@ -86,9 +86,9 @@
 
 .result-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
 }
@@ -117,9 +117,12 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.result-filename {
+.result-primary {
   font-weight: 500;
   color: var(--fg-color);
   white-space: nowrap;
@@ -127,12 +130,23 @@
   text-overflow: ellipsis;
 }
 
-.result-path {
+.result-primary .line-number {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 400;
+}
+
+.result-secondary {
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Content search mode: monospace font for code matches */
+.result-item.content-search .result-secondary {
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
 }
 
 .preview-pane {
@@ -254,7 +268,6 @@
 .search-match {
   background: var(--vscode-editor-findMatchHighlightBackground);
   color: var(--vscode-editor-findMatchHighlightForeground, inherit);
-  border: 1px solid var(--vscode-editor-findMatchBorder, transparent);
   padding: 0 2px;
   border-radius: 2px;
 }

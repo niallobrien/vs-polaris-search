@@ -2,7 +2,6 @@ import { SearchInput } from './SearchInput';
 import { SearchOptions } from './SearchOptions';
 import { ModeTabs } from './ModeTabs';
 import { ResultsList } from './ResultsList';
-import { SearchResultItem } from './SearchResultItem';
 import { SearchDetails } from './SearchDetails';
 import { PreviewPane } from './PreviewPane';
 import { FileResultDTO, PreviewDTO, ConfigDTO, UIStateDTO, SearchResultDTO } from '../../src/core/types';
@@ -16,7 +15,6 @@ export class App {
   private searchOptions: SearchOptions;
   private searchDetails: SearchDetails;
   private resultsList: ResultsList;
-  private searchResultItem: SearchResultItem;
   private previewPane: PreviewPane;
   private uiState: UIStateDTO | null = null;
   private currentIncludeGlobs: string[] = [];
@@ -29,7 +27,6 @@ export class App {
     this.searchOptions = new SearchOptions();
     this.searchDetails = new SearchDetails();
     this.resultsList = new ResultsList();
-    this.searchResultItem = new SearchResultItem();
     this.previewPane = new PreviewPane();
   }
 
@@ -50,7 +47,7 @@ export class App {
 
   setSearchResults(results: SearchResultDTO[], totalCount: number): void {
     this.hasSearched = true;
-    this.searchResultItem.setResults(results);
+    this.resultsList.setSearchResults(results);
     const fileCount = new Set(results.map(r => r.path)).size;
     this.updateResultSummary(`${totalCount} matches in ${fileCount}+ files`);
     
@@ -109,12 +106,7 @@ export class App {
     if (!resultsContainer) return;
 
     resultsContainer.innerHTML = '';
-
-    if (mode === 'findFiles') {
-      this.resultsList.mount(resultsContainer);
-    } else {
-      this.searchResultItem.mount(resultsContainer);
-    }
+    this.resultsList.mount(resultsContainer);
   }
 
   private updateResultSummary(text: string): void {
@@ -190,53 +182,25 @@ export class App {
 
     this.searchInput.setCallbacks({
       onArrowDown: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectNext();
-        } else {
-          this.searchResultItem.selectNext();
-        }
+        this.resultsList.selectNext();
       },
       onArrowUp: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectPrevious();
-        } else {
-          this.searchResultItem.selectPrevious();
-        }
+        this.resultsList.selectPrevious();
       },
       onEnter: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.openSelected();
-        } else {
-          this.searchResultItem.openSelected();
-        }
+        this.resultsList.openSelected();
       },
       onPageUp: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectPageUp();
-        } else {
-          this.searchResultItem.selectPageUp();
-        }
+        this.resultsList.selectPageUp();
       },
       onPageDown: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectPageDown();
-        } else {
-          this.searchResultItem.selectPageDown();
-        }
+        this.resultsList.selectPageDown();
       },
       onHome: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectFirst();
-        } else {
-          this.searchResultItem.selectFirst();
-        }
+        this.resultsList.selectFirst();
       },
       onEnd: () => {
-        if (this.uiState?.mode === 'findFiles') {
-          this.resultsList.selectLast();
-        } else {
-          this.searchResultItem.selectLast();
-        }
+        this.resultsList.selectLast();
       },
     });
 

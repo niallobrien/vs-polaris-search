@@ -188,36 +188,57 @@ export class ResultsList {
   private renderFileResults(): string {
     return (this.results as FileResultDTO[]).map((result, index) => {
       const isSelected = index === this.selectedIndex;
+      const fileName = this.getFileName(result.path);
+      const dirPath = this.getDirPath(result.path);
+      const truncatedPath = this.truncatePathLeft(dirPath);
       
       let displayName: string;
       let displayPath: string;
       
       if (result.highlightedPath) {
-        const lastSlashIndex = result.path.lastIndexOf('/');
-        if (lastSlashIndex >= 0) {
-          const fileNameStart = lastSlashIndex + 1;
-          displayName = this.extractHighlightedSubstring(result.highlightedPath, result.path, fileNameStart, result.path.length);
-          displayPath = this.extractHighlightedSubstring(result.highlightedPath, result.path, 0, lastSlashIndex);
-        } else {
-          displayName = result.highlightedPath;
-          displayPath = '';
-        }
+        displayName = this.extractHighlightedFileName(result.highlightedPath, result.path);
+        displayPath = this.extractHighlightedDirPath(result.highlightedPath, result.path, truncatedPath);
       } else {
-        const fileName = result.path.split('/').pop() || result.path;
-        const dirPath = result.path.substring(0, result.path.lastIndexOf('/'));
         displayName = this.escapeHtml(fileName);
-        displayPath = this.escapeHtml(dirPath);
+        displayPath = this.escapeHtml(truncatedPath);
       }
 
       return `
         <div class="result-item ${isSelected ? 'selected' : ''}" data-index="${index}">
           <div class="result-details">
-            <div class="result-filename">${displayName}</div>
-            <div class="result-path">${displayPath}</div>
+            <div class="result-primary">${displayName}</div>
+            <div class="result-secondary">${displayPath}</div>
           </div>
         </div>
       `;
     }).join('');
+  }
+
+  private extractHighlightedFileName(highlightedHtml: string, originalPath: string): string {
+    const fileName = this.getFileName(originalPath);
+    const lastSlash = originalPath.lastIndexOf('/');
+    
+    if (lastSlash < 0) {
+      return highlightedHtml;
+    }
+    
+    return this.extractHighlightedSubstring(highlightedHtml, originalPath, lastSlash + 1, originalPath.length);
+  }
+
+  private extractHighlightedDirPath(highlightedHtml: string, originalPath: string, truncatedPath: string): string {
+    const lastSlash = originalPath.lastIndexOf('/');
+    
+    if (lastSlash < 0) {
+      return '';
+    }
+    
+    const fullDirPath = originalPath.substring(0, lastSlash);
+    
+    if (fullDirPath.length <= 30) {
+      return this.extractHighlightedSubstring(highlightedHtml, originalPath, 0, lastSlash);
+    }
+    
+    return this.escapeHtml(truncatedPath);
   }
 
   private extractHighlightedSubstring(highlightedHtml: string, originalText: string, start: number, end: number): string {
@@ -269,18 +290,14 @@ export class ResultsList {
   private renderSearchResults(): string {
     return (this.results as SearchResultDTO[]).map((result, index) => {
       const isSelected = index === this.selectedIndex;
-      const fileName = result.path.split('/').pop() || result.path;
-      
+      const fileName = this.getFileName(result.path);
       const lineTextWithHighlights = this.highlightMatches(result);
 
       return `
-        <div class="result-item search-result ${isSelected ? 'selected' : ''}" data-index="${index}">
+        <div class="result-item content-search ${isSelected ? 'selected' : ''}" data-index="${index}">
           <div class="result-details">
-            <div class="result-header">
-              <span class="result-filename">${this.escapeHtml(fileName)}</span>
-              <span class="result-line">:${result.line}</span>
-            </div>
-            <div class="result-match">${lineTextWithHighlights}</div>
+            <div class="result-primary">${lineTextWithHighlights}</div>
+            <div class="result-secondary">${this.escapeHtml(fileName)}:<span class="line-number">${result.line}</span></div>
           </div>
         </div>
       `;
@@ -375,6 +392,30 @@ export class ResultsList {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private truncatePathLeft(path: string, maxLength: number = 30): string {
+    if (!path || path.length <= maxLength) {
+      return path;
+    }
+    
+    const truncated = path.slice(-(maxLength - 1));
+    const separatorIndex = truncated.indexOf('/');
+    
+    if (separatorIndex > 0 && separatorIndex < truncated.length - 1) {
+      return '…' + truncated.slice(separatorIndex);
+    }
+    
+    return '…' + truncated;
+  }
+
+  private getFileName(path: string): string {
+    return path.split('/').pop() || path;
+  }
+
+  private getDirPath(path: string): string {
+    const lastSlash = path.lastIndexOf('/');
+    return lastSlash >= 0 ? path.substring(0, lastSlash) : '';
   }
 
   private getListElements(): { container: Element | null; items: NodeListOf<Element> } {
