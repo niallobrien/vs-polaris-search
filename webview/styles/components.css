@@ -184,7 +184,7 @@
   margin: 0;
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size);
-  line-height: 1.5;
+  line-height: 1;
 }
 
 .preview-content code {
@@ -323,8 +323,10 @@
 .highlighted-line {
   display: block;
   background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.1));
-  margin: 0 -12px;
-  padding: 0 12px;
+  margin-left: -15px;
+  margin-right: -12px;
+  padding-left: 12px;
+  padding-right: 12px;
   border-left: 3px solid var(--vscode-editorOverviewRuler-findMatchForeground, #f97583);
 }
 
@@ -353,6 +355,7 @@
   user-select: none;
   flex-shrink: 0;
   overflow: hidden;
+  vertical-align: top;
 }
 
 .preview-content.show-line-numbers .line.highlighted-line::before {
