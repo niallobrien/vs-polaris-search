@@ -118,8 +118,10 @@
   min-width: 0;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
 }
 
 .result-primary {
@@ -128,6 +130,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .result-primary .line-number {
@@ -141,6 +145,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 /* Content search mode: monospace font for code matches */
