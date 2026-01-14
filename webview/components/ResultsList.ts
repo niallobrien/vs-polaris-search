@@ -1,0 +1,407 @@
+import { vscode } from '../services/vscode';
+import { FileResultDTO, SearchResultDTO } from '../../src/core/types';
+
+type ResultItem = FileResultDTO | SearchResultDTO;
+
+export class ResultsList {
+  private container: HTMLElement | null = null;
+  private results: ResultItem[] = [];
+  private selectedIndex = -1;
+  private mode: 'files' | 'content' = 'files';
+
+  mount(container: HTMLElement): void {
+    this.container = container;
+    this.render();
+  }
+
+  setResults(results: FileResultDTO[]): void {
+    this.mode = 'files';
+    this.results = results;
+    this.selectedIndex = results.length > 0 ? 0 : -1;
+    this.render();
+
+    if (this.selectedIndex >= 0) {
+      const result = this.results[0] as FileResultDTO;
+      vscode.postMessage({
+        type: 'resultSelected',
+        path: result.path
+      });
+    }
+  }
+
+  setSearchResults(results: SearchResultDTO[]): void {
+    this.mode = 'content';
+    this.results = results;
+    this.selectedIndex = results.length > 0 ? 0 : -1;
+    this.render();
+
+    if (this.selectedIndex >= 0) {
+      const result = this.results[0] as SearchResultDTO;
+      vscode.postMessage({
+        type: 'resultSelected',
+        path: result.path,
+        line: result.line
+      });
+    }
+  }
+
+  selectNext(): void {
+    if (this.results.length === 0) return;
+    
+    this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  selectPrevious(): void {
+    if (this.results.length === 0) return;
+    
+    this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  selectFirst(): void {
+    if (this.results.length === 0) return;
+    this.selectedIndex = 0;
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  selectLast(): void {
+    if (this.results.length === 0) return;
+    this.selectedIndex = this.results.length - 1;
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  selectPageUp(): void {
+    if (this.results.length === 0) return;
+    
+    const { container, items } = this.getListElements();
+    if (!container || items.length === 0) return;
+    
+    const firstVisibleIndex = this.findFirstFullyVisibleIndex(container, items);
+    const alreadyAtOrAboveFirstVisible = this.selectedIndex <= firstVisibleIndex;
+    
+    this.selectedIndex = alreadyAtOrAboveFirstVisible ? 0 : firstVisibleIndex;
+    
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  selectPageDown(): void {
+    if (this.results.length === 0) return;
+    
+    const { container, items } = this.getListElements();
+    if (!container || items.length === 0) return;
+    
+    const lastVisibleIndex = this.findLastFullyVisibleIndex(container, items);
+    const alreadyAtOrBelowLastVisible = this.selectedIndex >= lastVisibleIndex;
+    
+    this.selectedIndex = alreadyAtOrBelowLastVisible ? this.results.length - 1 : lastVisibleIndex;
+    
+    this.render();
+    this.scrollSelectedIntoView();
+    this.notifySelection();
+  }
+
+  openSelected(): void {
+    if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
+      const result = this.results[this.selectedIndex];
+      
+      if (this.mode === 'files') {
+        vscode.postMessage({
+          type: 'openFile',
+          path: (result as FileResultDTO).path
+        });
+      } else {
+        const searchResult = result as SearchResultDTO;
+        vscode.postMessage({
+          type: 'openFile',
+          path: searchResult.path,
+          line: searchResult.line
+        });
+      }
+    }
+  }
+
+  private scrollSelectedIntoView(): void {
+    if (!this.container) return;
+    
+    const selectedItem = this.container.querySelector('.result-item.selected');
+    selectedItem?.scrollIntoView({ block: 'nearest' });
+  }
+
+  private notifySelection(): void {
+    if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
+      const result = this.results[this.selectedIndex];
+      
+      if (this.mode === 'files') {
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: (result as FileResultDTO).path
+        });
+      } else {
+        const searchResult = result as SearchResultDTO;
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: searchResult.path,
+          line: searchResult.line
+        });
+      }
+    }
+  }
+
+  private render(): void {
+    if (!this.container) {
+      return;
+    }
+
+    if (this.results.length === 0) {
+      this.container.innerHTML = `
+        <div class="results-list">
+          <div class="results-placeholder">No results yet. Start searching...</div>
+        </div>
+      `;
+      return;
+    }
+
+    const itemsHTML = this.mode === 'files' 
+      ? this.renderFileResults() 
+      : this.renderSearchResults();
+
+    this.container.innerHTML = `
+      <div class="results-list">
+        ${itemsHTML}
+      </div>
+    `;
+
+    this.attachEventListeners();
+  }
+
+  private renderFileResults(): string {
+    return (this.results as FileResultDTO[]).map((result, index) => {
+      const isSelected = index === this.selectedIndex;
+      
+      let displayName: string;
+      let displayPath: string;
+      
+      if (result.highlightedPath) {
+        const lastSlashIndex = result.path.lastIndexOf('/');
+        if (lastSlashIndex >= 0) {
+          const fileNameStart = lastSlashIndex + 1;
+          displayName = this.extractHighlightedSubstring(result.highlightedPath, result.path, fileNameStart, result.path.length);
+          displayPath = this.extractHighlightedSubstring(result.highlightedPath, result.path, 0, lastSlashIndex);
+        } else {
+          displayName = result.highlightedPath;
+          displayPath = '';
+        }
+      } else {
+        const fileName = result.path.split('/').pop() || result.path;
+        const dirPath = result.path.substring(0, result.path.lastIndexOf('/'));
+        displayName = this.escapeHtml(fileName);
+        displayPath = this.escapeHtml(dirPath);
+      }
+
+      return `
+        <div class="result-item ${isSelected ? 'selected' : ''}" data-index="${index}">
+          <div class="result-details">
+            <div class="result-filename">${displayName}</div>
+            <div class="result-path">${displayPath}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  private extractHighlightedSubstring(highlightedHtml: string, originalText: string, start: number, end: number): string {
+    const substring = originalText.substring(start, end);
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = highlightedHtml;
+    const textContent = tempDiv.textContent || '';
+    
+    if (textContent !== originalText) {
+      return this.escapeHtml(substring);
+    }
+    
+    let htmlIndex = 0;
+    let textIndex = 0;
+    let result = '';
+    let inTag = false;
+    
+    while (htmlIndex < highlightedHtml.length && textIndex <= end) {
+      const char = highlightedHtml[htmlIndex];
+      
+      if (char === '<') {
+        inTag = true;
+        if (textIndex >= start && textIndex < end) {
+          result += char;
+        }
+      } else if (char === '>') {
+        inTag = false;
+        if (textIndex >= start && textIndex < end) {
+          result += char;
+        }
+      } else if (inTag) {
+        if (textIndex >= start && textIndex < end) {
+          result += char;
+        }
+      } else {
+        if (textIndex >= start && textIndex < end) {
+          result += char;
+        }
+        textIndex++;
+      }
+      
+      htmlIndex++;
+    }
+    
+    return result;
+  }
+
+  private renderSearchResults(): string {
+    return (this.results as SearchResultDTO[]).map((result, index) => {
+      const isSelected = index === this.selectedIndex;
+      const fileName = result.path.split('/').pop() || result.path;
+      
+      const lineTextWithHighlights = this.highlightMatches(result);
+
+      return `
+        <div class="result-item search-result ${isSelected ? 'selected' : ''}" data-index="${index}">
+          <div class="result-details">
+            <div class="result-header">
+              <span class="result-filename">${this.escapeHtml(fileName)}</span>
+              <span class="result-line">:${result.line}</span>
+            </div>
+            <div class="result-match">${lineTextWithHighlights}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  private highlightMatches(result: SearchResultDTO): string {
+    if (result.matches.length === 0) {
+      return this.escapeHtml(result.lineText);
+    }
+
+    let html = '';
+    let lastIndex = 0;
+
+    for (const match of result.matches) {
+      html += this.escapeHtml(match.beforeMatch.substring(lastIndex));
+      html += `<mark class="search-match">${this.escapeHtml(match.matchText)}</mark>`;
+      lastIndex = match.beforeMatch.length + match.matchText.length;
+    }
+
+    const lastMatch = result.matches[result.matches.length - 1];
+    html += this.escapeHtml(lastMatch.afterMatch);
+
+    return html;
+  }
+
+  private attachEventListeners(): void {
+    if (!this.container) {
+      return;
+    }
+
+    const items = this.container.querySelectorAll('.result-item');
+    items.forEach((item) => {
+      // Prevent focus theft - keep focus on search input
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+      item.addEventListener('click', this.handleClick.bind(this));
+      item.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+    });
+  }
+
+  private handleClick(event: Event): void {
+    const target = event.currentTarget as HTMLElement;
+    const index = parseInt(target.dataset.index || '-1', 10);
+    
+    if (index >= 0 && index < this.results.length) {
+      this.selectedIndex = index;
+      this.render();
+      
+      const result = this.results[index];
+      if (this.mode === 'files') {
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: (result as FileResultDTO).path
+        });
+      } else {
+        const searchResult = result as SearchResultDTO;
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: searchResult.path,
+          line: searchResult.line
+        });
+      }
+    }
+  }
+
+  private handleDoubleClick(event: Event): void {
+    const target = event.currentTarget as HTMLElement;
+    const index = parseInt(target.dataset.index || '-1', 10);
+    
+    if (index >= 0 && index < this.results.length) {
+      const result = this.results[index];
+      
+      if (this.mode === 'files') {
+        vscode.postMessage({
+          type: 'openFile',
+          path: (result as FileResultDTO).path
+        });
+      } else {
+        const searchResult = result as SearchResultDTO;
+        vscode.postMessage({
+          type: 'openFile',
+          path: searchResult.path,
+          line: searchResult.line
+        });
+      }
+    }
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  private getListElements(): { container: Element | null; items: NodeListOf<Element> } {
+    const container = this.container?.querySelector('.results-list') ?? null;
+    const items = container?.querySelectorAll('.result-item') ?? ([] as unknown as NodeListOf<Element>);
+    return { container, items };
+  }
+
+  private findFirstFullyVisibleIndex(container: Element, items: NodeListOf<Element>): number {
+    const containerRect = container.getBoundingClientRect();
+    for (let i = 0; i < items.length; i++) {
+      const itemRect = items[i].getBoundingClientRect();
+      if (itemRect.top >= containerRect.top && itemRect.bottom <= containerRect.bottom) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  private findLastFullyVisibleIndex(container: Element, items: NodeListOf<Element>): number {
+    const containerRect = container.getBoundingClientRect();
+    for (let i = items.length - 1; i >= 0; i--) {
+      const itemRect = items[i].getBoundingClientRect();
+      if (itemRect.top >= containerRect.top && itemRect.bottom <= containerRect.bottom) {
+        return i;
+      }
+    }
+    return this.results.length - 1;
+  }
+}

@@ -1,0 +1,52 @@
+:root {
+  --bg-color: var(--vscode-editor-background);
+  --fg-color: var(--vscode-editor-foreground);
+  --border-color: var(--vscode-panel-border);
+  --input-bg: var(--vscode-input-background);
+  --input-fg: var(--vscode-input-foreground);
+  --input-border: var(--vscode-input-border);
+  --button-bg: var(--vscode-button-background);
+  --button-hover-bg: var(--vscode-button-hoverBackground);
+  --list-hover-bg: var(--vscode-list-hoverBackground);
+  --list-active-bg: var(--vscode-list-activeSelectionBackground);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--fg-color);
+  background: var(--bg-color);
+  overflow: hidden;
+}
+
+.polaris-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+.polaris-header {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.polaris-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.polaris-results,
+.polaris-preview {
+  background: var(--bg-color);
+  overflow: auto;
+}

@@ -1,0 +1,262 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { SearchMode } from '../core/types';
+import { ExtensionMessage, WebviewMessage, MessageHandler } from './messageProtocol';
+import { getConfig, onConfigChange } from '../config/settings';
+
+export class PolarisPanel {
+  public static currentPanels: Map<string, PolarisPanel> = new Map();
+  private static panelIdCounter = 0;
+
+  private readonly panel: vscode.WebviewPanel;
+  private readonly extensionUri: vscode.Uri;
+  private readonly panelId: string;
+  private readonly mode: SearchMode;
+  private disposables: vscode.Disposable[] = [];
+
+  public static createOrShow(
+    extensionUri: vscode.Uri,
+    mode: SearchMode
+  ): PolarisPanel {
+    const panelId = `polaris-${++PolarisPanel.panelIdCounter}`;
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
+
+    const panel = vscode.window.createWebviewPanel(
+      'polaris',
+      mode === 'findFiles' ? '🌟 Find Files' : '🌟 Find in Files',
+      column || vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(extensionUri, 'dist'),
+          vscode.Uri.joinPath(extensionUri, 'webview'),
+        ],
+      }
+    );
+
+    const polarisPanel = new PolarisPanel(panel, extensionUri, panelId, mode);
+    PolarisPanel.currentPanels.set(panelId, polarisPanel);
+
+    return polarisPanel;
+  }
+
+  private constructor(
+    panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
+    panelId: string,
+    mode: SearchMode
+  ) {
+    this.panel = panel;
+    this.extensionUri = extensionUri;
+    this.panelId = panelId;
+    this.mode = mode;
+
+    this.panel.webview.html = this.getHtmlForWebview();
+
+    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+    this.panel.webview.onDidReceiveMessage(
+      (message: WebviewMessage) => {
+        this.handleMessage(message);
+      },
+      null,
+      this.disposables
+    );
+
+    const configDisposable = onConfigChange(() => {
+      this.postMessage({
+        type: 'setConfig',
+        config: getConfig(),
+      });
+    });
+    this.disposables.push(configDisposable);
+
+    this.postMessage({
+      type: 'setConfig',
+      config: getConfig(),
+    });
+
+    this.postMessage({
+      type: 'setUIState',
+      state: {
+        mode: this.mode,
+        busy: false,
+        matchCase: false,
+        matchWholeWord: false,
+        useRegex: false,
+        liveSearch: true,
+        showReplace: false,
+      },
+    });
+  }
+
+  public postMessage(message: ExtensionMessage): void {
+    this.panel.webview.postMessage(message);
+  }
+
+  private handleMessage(message: WebviewMessage): void {
+    switch (message.type) {
+      case 'ready':
+        break;
+      case 'queryChanged':
+        this.handleQueryChanged(message.query);
+        break;
+      case 'resultSelected':
+        this.handleResultSelected(message.path);
+        break;
+      case 'openFile':
+        this.handleOpenFile(message.path, message.line, message.mode);
+        break;
+      case 'toggleMatchCase':
+      case 'toggleMatchWholeWord':
+      case 'toggleUseRegex':
+      case 'toggleLiveSearch':
+      case 'toggleReplace':
+        break;
+      case 'replaceOne':
+      case 'replaceAll':
+        break;
+    }
+  }
+
+  private async handleQueryChanged(query: string): Promise<void> {
+    if (this.mode !== 'findFiles') {
+      return;
+    }
+
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) {
+      return;
+    }
+
+    this.postMessage({ type: 'setBusy', busy: true });
+
+    try {
+      const { findFiles } = await import('../finders/fileFinder');
+      const results = await findFiles(query, workspaceRoot);
+      
+      this.postMessage({
+        type: 'setFileResults',
+        results
+      });
+    } catch (error) {
+      console.error('Error finding files:', error);
+    } finally {
+      this.postMessage({ type: 'setBusy', busy: false });
+    }
+  }
+
+  private async handleResultSelected(filePath: string): Promise<void> {
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) {
+      return;
+    }
+
+    try {
+      const { readFilePreview } = await import('../adapters/workspace/fileSystem');
+      const preview = await readFilePreview(workspaceRoot, filePath);
+      
+      this.postMessage({
+        type: 'setPreview',
+        preview
+      });
+    } catch (error) {
+      console.error('Error reading file preview:', error);
+    }
+  }
+
+  private getWorkspaceRoot(): string | undefined {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      return undefined;
+    }
+    return workspaceFolders[0].uri.fsPath;
+  }
+
+  private async handleOpenFile(
+    filePath: string,
+    line?: number,
+    mode: 'current' | 'split' | 'tab' = 'current'
+  ): Promise<void> {
+    const uri = vscode.Uri.file(filePath);
+    const doc = await vscode.workspace.openTextDocument(uri);
+
+    let viewColumn = vscode.ViewColumn.One;
+    if (mode === 'split') {
+      viewColumn = vscode.ViewColumn.Beside;
+    } else if (mode === 'tab') {
+      viewColumn = vscode.ViewColumn.Active;
+    }
+
+    const editor = await vscode.window.showTextDocument(doc, viewColumn);
+
+    if (line !== undefined && line > 0) {
+      const position = new vscode.Position(line - 1, 0);
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(
+        new vscode.Range(position, position),
+        vscode.TextEditorRevealType.InCenter
+      );
+    }
+  }
+
+  private getHtmlForWebview(): string {
+    const webview = this.panel.webview;
+
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.js')
+    );
+
+    const baseCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'webview', 'styles', 'base.css')
+    );
+
+    const componentsCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'webview', 'styles', 'components.css')
+    );
+
+    const nonce = getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <link rel="stylesheet" href="${baseCssUri}">
+  <link rel="stylesheet" href="${componentsCssUri}">
+  <title>Polaris Search</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+
+  public dispose(): void {
+    PolarisPanel.currentPanels.delete(this.panelId);
+
+    this.panel.dispose();
+
+    while (this.disposables.length) {
+      const disposable = this.disposables.pop();
+      if (disposable) {
+        disposable.dispose();
+      }
+    }
+  }
+}
+
+function getNonce(): string {
+  let text = '';
+  const possible =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
