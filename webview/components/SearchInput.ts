@@ -19,19 +19,19 @@ export class SearchInput {
   private callbacks: SearchInputCallbacks | null = null;
   private getExtraParams: (() => { includeGlobs?: string[]; excludeGlobs?: string[] }) | null = null;
   private liveSearch = true;
-  private currentMode: SearchMode = 'findFiles';
+  private currentMode: SearchMode = 'findInFiles';
   private readonly MAX_HEIGHT = 150;
 
   mount(container: HTMLElement): void {
     this.container = container;
     container.innerHTML = `
       <div class="search-input-wrapper">
-        <button class="search-mode-prefix" title="Find Files (⌘M to search content)">
-          <i class="codicon codicon-file"></i>
+        <button class="search-mode-prefix" title="Find in Files (⌘M to search files)">
+          <i class="codicon codicon-search"></i>
         </button>
         <textarea 
           class="search-input" 
-          placeholder="Search files..."
+          placeholder="Search in files..."
           rows="1"
         ></textarea>
       </div>
@@ -53,7 +53,7 @@ export class SearchInput {
     if (prefixBtn) {
       prefixBtn.addEventListener('mousedown', (e) => e.preventDefault());
       prefixBtn.addEventListener('click', () => {
-        const newMode = this.currentMode === 'findFiles' ? 'findInFiles' : 'findFiles';
+        const newMode = this.currentMode === 'findInFiles' ? 'findFiles' : 'findInFiles';
         vscode.postMessage({ type: 'modeChanged', mode: newMode });
       });
     }
@@ -95,19 +95,19 @@ export class SearchInput {
     const icon = prefixBtn?.querySelector('.codicon');
     
     if (prefixBtn && icon) {
-      const iconName = this.currentMode === 'findFiles' ? 'file' : 'search';
+      const iconName = this.currentMode === 'findInFiles' ? 'search' : 'file';
       icon.className = `codicon codicon-${iconName}`;
       
-      const tooltip = this.currentMode === 'findFiles'
-        ? 'Find Files (⌘M to search content)'
-        : 'Find in Files (⌘M to search files)';
+      const tooltip = this.currentMode === 'findInFiles'
+        ? 'Find in Files (⌘M to search files)'
+        : 'Find Files (⌘M to search content)';
       prefixBtn.setAttribute('title', tooltip);
     }
     
     if (this.inputElement) {
-      this.inputElement.placeholder = this.currentMode === 'findFiles'
-        ? 'Search files...'
-        : 'Search in files...';
+      this.inputElement.placeholder = this.currentMode === 'findInFiles'
+        ? 'Search in files...'
+        : 'Search files...';
     }
   }
 

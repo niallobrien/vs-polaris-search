@@ -18,7 +18,7 @@ export class SearchOptions {
     useRegex: false,
     liveSearch: true,
     showSearchDetails: false,
-    mode: 'findFiles',
+    mode: 'findInFiles',
   };
 
   mount(container: HTMLElement): void {

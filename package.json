@@ -18,34 +18,34 @@
     "fuzzy"
   ],
   "activationEvents": [
-    "onCommand:polaris.findFiles",
-    "onCommand:polaris.findInFiles"
+    "onCommand:polaris.findInFiles",
+    "onCommand:polaris.findFiles"
   ],
   "main": "./dist/extension.js",
   "icon": "media/polaris-icon.png",
   "contributes": {
     "commands": [
       {
-        "command": "polaris.findFiles",
-        "title": "Polaris: Find Files",
+        "command": "polaris.findInFiles",
+        "title": "Find in Files",
         "category": "Polaris"
       },
       {
-        "command": "polaris.findInFiles",
-        "title": "Polaris: Find in Files",
+        "command": "polaris.findFiles",
+        "title": "Find Files",
         "category": "Polaris"
       }
     ],
     "keybindings": [
       {
-        "command": "polaris.findFiles",
+        "command": "polaris.findInFiles",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
         "win": "ctrl+alt+p",
         "linux": "ctrl+alt+p"
       },
       {
-        "command": "polaris.findInFiles",
+        "command": "polaris.findFiles",
         "key": "ctrl+alt+f",
         "mac": "cmd+alt+f",
         "win": "ctrl+alt+f",

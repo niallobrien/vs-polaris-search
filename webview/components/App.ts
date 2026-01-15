@@ -234,7 +234,7 @@ export class App {
 
   private toggleMode(): void {
     if (!this.uiState) return;
-    const newMode = this.uiState.mode === 'findFiles' ? 'findInFiles' : 'findFiles';
+    const newMode = this.uiState.mode === 'findInFiles' ? 'findFiles' : 'findInFiles';
     vscode.postMessage({ type: 'modeChanged', mode: newMode });
   }
 }
