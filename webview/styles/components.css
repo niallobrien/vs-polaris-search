@@ -34,7 +34,7 @@
 
 .search-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 4px 12px;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--input-fg);
@@ -42,11 +42,12 @@
   font-size: var(--vscode-font-size);
   border-radius: 3px;
   resize: none;
-  min-height: 34px;
+  min-height: 24px;
   max-height: 150px;
   overflow-y: hidden;
-  line-height: 1.4;
+  line-height: 16px;
   transition: height 0.1s ease-out;
+  vertical-align: middle;
 }
 
 .search-input:focus {
@@ -68,6 +69,10 @@
   border-radius: 3px;
   font-family: monospace;
   font-size: 12px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .option-btn.active {
