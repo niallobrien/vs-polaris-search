@@ -1,24 +1,38 @@
-.mode-tabs {
+.search-input-wrapper {
+  position: relative;
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
 }
 
-.mode-tab {
-  padding: 6px 12px;
-  border: 1px solid var(--input-border);
+.search-mode-prefix {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  height: calc(100% - 2px);
+  min-height: 22px;
+  width: 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
   background: var(--input-bg);
-  color: var(--input-fg);
+  border: none;
+  border-right: 1px solid var(--input-border);
+  border-radius: 2px 0 0 2px;
   cursor: pointer;
-  border-radius: 3px;
+  color: var(--vscode-descriptionForeground);
+  z-index: 1;
 }
 
-.mode-tab.active {
-  background: var(--button-bg);
+.search-mode-prefix:hover {
+  color: var(--input-fg);
+  background: var(--list-hover-bg);
 }
 
-.mode-tab:hover {
-  background: var(--button-hover-bg);
+.search-mode-prefix .codicon {
+  font-size: 14px;
 }
 
 .search-row {
@@ -34,7 +48,7 @@
 
 .search-input {
   width: 100%;
-  padding: 4px 12px;
+  padding: 4px 12px 4px 36px;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--input-fg);

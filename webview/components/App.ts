@@ -1,6 +1,5 @@
 import { SearchInput } from './SearchInput';
 import { SearchOptions } from './SearchOptions';
-import { ModeTabs } from './ModeTabs';
 import { ResultsList } from './ResultsList';
 import { SearchDetails } from './SearchDetails';
 import { PreviewPane } from './PreviewPane';
@@ -11,7 +10,6 @@ import { highlighter } from '../services/highlighter';
 export class App {
   private container: HTMLElement | null = null;
 
-  private modeTabs: ModeTabs;
   private searchInput: SearchInput;
   private searchOptions: SearchOptions;
   private searchDetails: SearchDetails;
@@ -24,7 +22,6 @@ export class App {
   private currentPreviewData: PreviewDTO | null = null;
 
   constructor() {
-    this.modeTabs = new ModeTabs();
     this.searchInput = new SearchInput();
     this.searchOptions = new SearchOptions();
     this.searchDetails = new SearchDetails();
@@ -95,7 +92,7 @@ export class App {
   setUIState(state: UIStateDTO): void {
     this.uiState = state;
     
-    this.modeTabs.setMode(state.mode);
+    this.searchInput.setMode(state.mode);
     this.searchOptions.setState({
       matchCase: state.matchCase,
       matchWholeWord: state.matchWholeWord,
@@ -142,7 +139,6 @@ export class App {
     this.container.innerHTML = `
       <div class="polaris-app">
         <div class="polaris-header">
-          <div id="mode-tabs"></div>
           <div class="search-row">
             <div id="search-input"></div>
             <div id="search-options"></div>
@@ -157,14 +153,12 @@ export class App {
       </div>
     `;
 
-    const modeTabsEl = this.container.querySelector('#mode-tabs');
     const searchInputEl = this.container.querySelector('#search-input');
     const searchOptionsEl = this.container.querySelector('#search-options');
     const searchDetailsEl = this.container.querySelector('#search-details');
     const resultsListEl = this.container.querySelector('#results-list');
     const previewPaneEl = this.container.querySelector('#preview-pane');
 
-    if (modeTabsEl) this.modeTabs.mount(modeTabsEl as HTMLElement);
     if (searchInputEl) {
       this.searchInput.mount(searchInputEl as HTMLElement);
       this.searchInput.setExtraParamsProvider(() => ({

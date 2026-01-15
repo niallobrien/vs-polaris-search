@@ -1,4 +1,5 @@
 import { vscode } from '../services/vscode';
+import { SearchMode } from '../../src/core/types';
 
 export interface SearchInputCallbacks {
   onArrowDown: () => void;
@@ -11,20 +12,26 @@ export interface SearchInputCallbacks {
 }
 
 export class SearchInput {
+  private container: HTMLElement | null = null;
   private inputElement: HTMLTextAreaElement | null = null;
   private debounceTimer: number | null = null;
   private debounceDelay = 300;
   private callbacks: SearchInputCallbacks | null = null;
   private getExtraParams: (() => { includeGlobs?: string[]; excludeGlobs?: string[] }) | null = null;
   private liveSearch = true;
+  private currentMode: SearchMode = 'findFiles';
   private readonly MAX_HEIGHT = 150;
 
   mount(container: HTMLElement): void {
+    this.container = container;
     container.innerHTML = `
       <div class="search-input-wrapper">
+        <button class="search-mode-prefix" title="Find Files (⌘M to search content)">
+          <i class="codicon codicon-file"></i>
+        </button>
         <textarea 
           class="search-input" 
-          placeholder="Search..."
+          placeholder="Search files..."
           rows="1"
         ></textarea>
       </div>
@@ -40,6 +47,15 @@ export class SearchInput {
       });
       this.inputElement.focus();
       this.autoResize();
+    }
+
+    const prefixBtn = container.querySelector('.search-mode-prefix');
+    if (prefixBtn) {
+      prefixBtn.addEventListener('mousedown', (e) => e.preventDefault());
+      prefixBtn.addEventListener('click', () => {
+        const newMode = this.currentMode === 'findFiles' ? 'findInFiles' : 'findFiles';
+        vscode.postMessage({ type: 'modeChanged', mode: newMode });
+      });
     }
   }
 
@@ -65,6 +81,34 @@ export class SearchInput {
 
   getInputElement(): HTMLTextAreaElement | null {
     return this.inputElement;
+  }
+
+  setMode(mode: SearchMode): void {
+    this.currentMode = mode;
+    this.updateModePrefix();
+  }
+
+  private updateModePrefix(): void {
+    if (!this.container) return;
+    
+    const prefixBtn = this.container.querySelector('.search-mode-prefix');
+    const icon = prefixBtn?.querySelector('.codicon');
+    
+    if (prefixBtn && icon) {
+      const iconName = this.currentMode === 'findFiles' ? 'file' : 'search';
+      icon.className = `codicon codicon-${iconName}`;
+      
+      const tooltip = this.currentMode === 'findFiles'
+        ? 'Find Files (⌘M to search content)'
+        : 'Find in Files (⌘M to search files)';
+      prefixBtn.setAttribute('title', tooltip);
+    }
+    
+    if (this.inputElement) {
+      this.inputElement.placeholder = this.currentMode === 'findFiles'
+        ? 'Search files...'
+        : 'Search in files...';
+    }
   }
 
   private autoResize(): void {
