@@ -29,6 +29,8 @@ vscode.onMessage(async (message: unknown) => {
     case 'focusSearchInput':
       app.focusSearchInput();
       break;
+    case 'replaceComplete':
+      break;
   }
 });
 

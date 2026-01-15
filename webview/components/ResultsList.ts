@@ -146,6 +146,29 @@ export class ResultsList {
     }
   }
 
+  getSelectedResult(): { path: string; line: number; column: number; matchText: string } | null {
+    if (this.selectedIndex < 0 || this.selectedIndex >= this.results.length) {
+      return null;
+    }
+
+    if (this.mode !== 'content') {
+      return null;
+    }
+
+    const result = this.results[this.selectedIndex] as SearchResultDTO;
+    if (!result.matches || result.matches.length === 0) {
+      return null;
+    }
+
+    const firstMatch = result.matches[0];
+    return {
+      path: result.path,
+      line: result.line,
+      column: firstMatch.column,
+      matchText: firstMatch.matchText
+    };
+  }
+
   private scrollSelectedIntoView(): void {
     if (!this.container) return;
     

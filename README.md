@@ -16,6 +16,7 @@ Fast, beautiful search and replace for VS Code.
 |--------|-----|---------------|
 | Find Files | `Cmd+Shift+T` | `Ctrl+Shift+T` |
 | Find in Files | `Cmd+Shift+G` | `Ctrl+Shift+G` |
+| Toggle Replace | `Cmd+Shift+H` | `Ctrl+Shift+H` |
 
 ## Installation
 

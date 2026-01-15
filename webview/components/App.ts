@@ -1,7 +1,7 @@
 import { SearchInput } from './SearchInput';
 import { SearchOptions } from './SearchOptions';
+import { ReplaceInput } from './ReplaceInput';
 import { ResultsList } from './ResultsList';
-import { SearchDetails } from './SearchDetails';
 import { PreviewPane } from './PreviewPane';
 import { FileResultDTO, PreviewDTO, ConfigDTO, UIStateDTO, SearchResultDTO } from '../../src/core/types';
 import { vscode } from '../services/vscode';
@@ -12,7 +12,7 @@ export class App {
 
   private searchInput: SearchInput;
   private searchOptions: SearchOptions;
-  private searchDetails: SearchDetails;
+  private replaceInput: ReplaceInput;
   private resultsList: ResultsList;
   private previewPane: PreviewPane;
   private uiState: UIStateDTO | null = null;
@@ -24,7 +24,7 @@ export class App {
   constructor() {
     this.searchInput = new SearchInput();
     this.searchOptions = new SearchOptions();
-    this.searchDetails = new SearchDetails();
+    this.replaceInput = new ReplaceInput();
     this.resultsList = new ResultsList();
     this.previewPane = new PreviewPane();
   }
@@ -98,18 +98,18 @@ export class App {
       matchWholeWord: state.matchWholeWord,
       useRegex: state.useRegex,
       liveSearch: state.liveSearch,
-      showSearchDetails: state.showSearchDetails,
       mode: state.mode,
+      showReplace: state.showReplace,
     });
     
     this.searchInput.setLiveSearch(state.liveSearch);
     
-    this.searchDetails.setVisible(state.showSearchDetails);
+    this.replaceInput.setVisible(state.showReplace && state.mode === 'findInFiles');
+    
     this.updateResultsDisplay(state.mode);
     
     this.previewPane.clear();
     
-    // Reset search state when mode changes
     this.hasSearched = false;
     this.updateResultSummary('');
   }
@@ -143,8 +143,8 @@ export class App {
             <div id="search-input"></div>
             <div id="search-options"></div>
           </div>
+          <div id="replace-input"></div>
           <div id="result-summary" class="result-summary"></div>
-          <div id="search-details"></div>
         </div>
         <div class="polaris-content">
           <div class="polaris-results" id="results-list"></div>
@@ -155,7 +155,7 @@ export class App {
 
     const searchInputEl = this.container.querySelector('#search-input');
     const searchOptionsEl = this.container.querySelector('#search-options');
-    const searchDetailsEl = this.container.querySelector('#search-details');
+    const replaceInputEl = this.container.querySelector('#replace-input');
     const resultsListEl = this.container.querySelector('#results-list');
     const previewPaneEl = this.container.querySelector('#preview-pane');
 
@@ -167,24 +167,11 @@ export class App {
       }));
     }
     if (searchOptionsEl) this.searchOptions.mount(searchOptionsEl as HTMLElement);
-    if (searchDetailsEl) {
-      this.searchDetails.mount(searchDetailsEl as HTMLElement);
-      this.searchDetails.setOnChange((includeGlobs, excludeGlobs) => {
-        this.currentIncludeGlobs = includeGlobs;
-        this.currentExcludeGlobs = excludeGlobs;
-        
-        const inputEl = document.querySelector('.search-input') as HTMLInputElement;
-        if (inputEl && inputEl.value.trim()) {
-          vscode.postMessage({
-            type: 'queryChanged',
-            query: inputEl.value,
-            includeGlobs,
-            excludeGlobs
-          });
-        }
-      });
-      this.searchDetails.setOnBlur(() => {
-        this.searchInput.focus();
+    if (replaceInputEl) {
+      this.replaceInput.mount(replaceInputEl as HTMLElement);
+      this.replaceInput.setCallbacks({
+        onReplace: () => this.handleReplaceOne(),
+        onReplaceAll: () => this.handleReplaceAll()
       });
     }
     if (resultsListEl) this.resultsList.mount(resultsListEl as HTMLElement);
@@ -229,6 +216,12 @@ export class App {
         e.stopPropagation();
         this.toggleMode();
       }
+
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'h') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleReplace();
+      }
     });
   }
 
@@ -236,6 +229,39 @@ export class App {
     if (!this.uiState) return;
     const newMode = this.uiState.mode === 'findInFiles' ? 'findFiles' : 'findInFiles';
     vscode.postMessage({ type: 'modeChanged', mode: newMode });
+  }
+
+  private toggleReplace(): void {
+    vscode.postMessage({ type: 'toggleReplace' });
+  }
+
+  private handleReplaceOne(): void {
+    if (!this.uiState || this.uiState.mode !== 'findInFiles') return;
+    
+    const selected = this.resultsList.getSelectedResult();
+    if (!selected) return;
+
+    const replaceText = this.replaceInput.getValue();
+    
+    vscode.postMessage({
+      type: 'replaceOne',
+      path: selected.path,
+      line: selected.line,
+      column: selected.column,
+      matchLength: selected.matchText.length,
+      replaceText
+    });
+  }
+
+  private handleReplaceAll(): void {
+    if (!this.uiState || this.uiState.mode !== 'findInFiles') return;
+    
+    const replaceText = this.replaceInput.getValue();
+    
+    vscode.postMessage({
+      type: 'replaceAll',
+      replaceText
+    });
   }
 }
 

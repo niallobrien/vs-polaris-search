@@ -5,6 +5,7 @@ import {
   UIStateDTO,
   ConfigDTO,
   SearchMode,
+  ReplaceResult,
 } from '../core/types';
 
 export type ExtensionMessage =
@@ -14,7 +15,8 @@ export type ExtensionMessage =
   | { type: 'setPreview'; preview: PreviewDTO }
   | { type: 'setUIState'; state: UIStateDTO }
   | { type: 'setConfig'; config: ConfigDTO }
-  | { type: 'focusSearchInput' };
+  | { type: 'focusSearchInput' }
+  | { type: 'replaceComplete'; result: ReplaceResult };
 
 export type WebviewMessage =
   | { type: 'ready' }
@@ -28,8 +30,7 @@ export type WebviewMessage =
   | { type: 'toggleUseRegex' }
   | { type: 'toggleLiveSearch' }
   | { type: 'toggleReplace' }
-  | { type: 'toggleSearchDetails' }
-  | { type: 'replaceOne'; path: string; line: number }
-  | { type: 'replaceAll' };
+  | { type: 'replaceOne'; path: string; line: number; column: number; matchLength: number; replaceText: string }
+  | { type: 'replaceAll'; replaceText: string };
 
 export type MessageHandler = (message: WebviewMessage) => void;

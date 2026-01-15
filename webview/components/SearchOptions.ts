@@ -6,8 +6,8 @@ export interface SearchOptionsState {
   matchWholeWord: boolean;
   useRegex: boolean;
   liveSearch: boolean;
-  showSearchDetails: boolean;
   mode: SearchMode;
+  showReplace: boolean;
 }
 
 export class SearchOptions {
@@ -17,8 +17,8 @@ export class SearchOptions {
     matchWholeWord: false,
     useRegex: false,
     liveSearch: true,
-    showSearchDetails: false,
     mode: 'findInFiles',
+    showReplace: false,
   };
 
   mount(container: HTMLElement): void {
@@ -51,9 +51,9 @@ export class SearchOptions {
         findFiles: 'Live Search (Alt+L)',
         findInFiles: 'Live Search (Alt+L)',
       },
-      showSearchDetails: {
-        findFiles: 'Search Details (Alt+D)',
-        findInFiles: 'Search Details (Alt+D)',
+      showReplace: {
+        findFiles: 'Toggle Replace (Cmd+Shift+H)',
+        findInFiles: 'Toggle Replace (Cmd+Shift+H)',
       },
     };
     
@@ -63,13 +63,19 @@ export class SearchOptions {
   private render(): void {
     if (!this.container) return;
 
+    const showReplaceButton = this.state.mode === 'findInFiles' ? `
+      <button class="option-btn ${this.state.showReplace ? 'active' : ''}" data-option="showReplace" title="${this.getTooltip('showReplace')}">
+        <i class="codicon codicon-replace"></i>
+      </button>
+    ` : '';
+
     this.container.innerHTML = `
       <div class="search-options">
         <button class="option-btn ${this.state.matchCase ? 'active' : ''}" data-option="matchCase" title="${this.getTooltip('matchCase')}">Aa</button>
         <button class="option-btn ${this.state.matchWholeWord ? 'active' : ''}" data-option="matchWholeWord" title="${this.getTooltip('matchWholeWord')}">Ab|</button>
         <button class="option-btn ${this.state.useRegex ? 'active' : ''}" data-option="useRegex" title="${this.getTooltip('useRegex')}">.*</button>
         <button class="option-btn ${this.state.liveSearch ? 'active' : ''}" data-option="liveSearch" title="${this.getTooltip('liveSearch')}">⚡</button>
-        <button class="option-btn ${this.state.showSearchDetails ? 'active' : ''}" data-option="showSearchDetails" title="${this.getTooltip('showSearchDetails')}">⋮</button>
+        ${showReplaceButton}
       </div>
     `;
 
@@ -95,7 +101,7 @@ export class SearchOptions {
           matchWholeWord: 'toggleMatchWholeWord',
           useRegex: 'toggleUseRegex',
           liveSearch: 'toggleLiveSearch',
-          showSearchDetails: 'toggleSearchDetails',
+          showReplace: 'toggleReplace',
         };
 
         if (option && messageMap[option]) {

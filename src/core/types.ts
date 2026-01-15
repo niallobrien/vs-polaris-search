@@ -45,7 +45,6 @@ export interface UIStateDTO {
   useRegex: boolean;
   liveSearch: boolean;
   showReplace: boolean;
-  showSearchDetails: boolean;
 }
 
 export interface ConfigDTO {
@@ -61,5 +60,10 @@ export interface TogglePreferences {
   matchWholeWord: boolean;
   useRegex: boolean;
   liveSearch: boolean;
-  showSearchDetails: boolean;
+}
+
+export interface ReplaceResult {
+  success: boolean;
+  replacedCount: number;
+  failedFiles?: string[];
 }

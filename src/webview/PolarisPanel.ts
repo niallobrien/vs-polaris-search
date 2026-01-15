@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SearchMode, UIStateDTO, TogglePreferences } from '../core/types';
+import { SearchMode, UIStateDTO, TogglePreferences, SearchResultDTO } from '../core/types';
 import { ExtensionMessage, WebviewMessage, MessageHandler } from './messageProtocol';
 import { getConfig, onConfigChange, onColorThemeChange } from '../config/settings';
 
@@ -20,6 +20,7 @@ export class PolarisPanel {
   private lastQuery: string = '';
   private lastIncludeGlobs: string[] = [];
   private lastExcludeGlobs: string[] = [];
+  private lastSearchResults: SearchResultDTO[] = [];
 
   public static createOrShow(
     context: vscode.ExtensionContext,
@@ -75,7 +76,6 @@ export class PolarisPanel {
       useRegex: savedPrefs?.useRegex ?? false,
       liveSearch: savedPrefs?.liveSearch ?? true,
       showReplace: false,
-      showSearchDetails: savedPrefs?.showSearchDetails ?? false,
     };
 
     this.panel.webview.html = this.getHtmlForWebview();
@@ -121,7 +121,7 @@ export class PolarisPanel {
     this.panel.webview.postMessage(message);
   }
 
-  private handleMessage(message: WebviewMessage): void {
+  private async handleMessage(message: WebviewMessage): Promise<void> {
     switch (message.type) {
       case 'ready':
         this.postMessage({ type: 'setUIState', state: this.uiState });
@@ -172,13 +172,17 @@ export class PolarisPanel {
         this.uiState.showReplace = !this.uiState.showReplace;
         this.sendUIState();
         break;
-      case 'toggleSearchDetails':
-        this.uiState.showSearchDetails = !this.uiState.showSearchDetails;
-        this.sendUIState();
-        this.saveTogglePreferences();
-        break;
       case 'replaceOne':
+        await this.handleReplaceOne(
+          message.path,
+          message.line,
+          message.column,
+          message.matchLength,
+          message.replaceText
+        );
+        break;
       case 'replaceAll':
+        await this.handleReplaceAll(message.replaceText);
         break;
     }
   }
@@ -193,7 +197,6 @@ export class PolarisPanel {
       matchWholeWord: this.uiState.matchWholeWord,
       useRegex: this.uiState.useRegex,
       liveSearch: this.uiState.liveSearch,
-      showSearchDetails: this.uiState.showSearchDetails,
     };
 
     await this.context.globalState.update(TOGGLE_PREFS_KEY, prefs);
@@ -245,6 +248,8 @@ export class PolarisPanel {
           includeGlobs: includeGlobs || [],
           excludeGlobs: excludeGlobs || [],
         });
+        
+        this.lastSearchResults = results;
         
         this.postMessage({
           type: 'setSearchResults',
@@ -332,6 +337,100 @@ export class PolarisPanel {
         vscode.TextEditorRevealType.InCenter
       );
     }
+  }
+
+  private async handleReplaceOne(
+    filePath: string,
+    line: number,
+    column: number,
+    matchLength: number,
+    replaceText: string
+  ): Promise<void> {
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) return;
+
+    const absolutePath = path.join(workspaceRoot, filePath);
+    const uri = vscode.Uri.file(absolutePath);
+
+    const edit = new vscode.WorkspaceEdit();
+    const range = new vscode.Range(
+      new vscode.Position(line - 1, column),
+      new vscode.Position(line - 1, column + matchLength)
+    );
+    edit.replace(uri, range, replaceText);
+
+    const success = await vscode.workspace.applyEdit(edit);
+
+    if (success) {
+      this.rerunSearch();
+    }
+
+    this.postMessage({
+      type: 'replaceComplete',
+      result: { success, replacedCount: success ? 1 : 0 }
+    });
+  }
+
+  private async handleReplaceAll(replaceText: string): Promise<void> {
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) return;
+
+    if (this.lastSearchResults.length === 0) {
+      vscode.window.showInformationMessage('No search results to replace');
+      return;
+    }
+
+    const totalMatches = this.lastSearchResults.reduce((sum, result) => sum + result.matches.length, 0);
+    const fileCount = new Set(this.lastSearchResults.map(r => r.path)).size;
+
+    const confirm = await vscode.window.showWarningMessage(
+      `Replace ${totalMatches} occurrences in ${fileCount} file(s)?`,
+      { modal: true },
+      'Replace'
+    );
+
+    if (confirm !== 'Replace') return;
+
+    const edit = new vscode.WorkspaceEdit();
+
+    const resultsByFile = new Map<string, SearchResultDTO[]>();
+    for (const result of this.lastSearchResults) {
+      const existing = resultsByFile.get(result.path) || [];
+      existing.push(result);
+      resultsByFile.set(result.path, existing);
+    }
+
+    for (const [filePath, results] of resultsByFile) {
+      const uri = vscode.Uri.file(path.join(workspaceRoot, filePath));
+
+      const sorted = results.sort((a, b) => b.line - a.line || b.column - a.column);
+
+      for (const result of sorted) {
+        for (const match of result.matches) {
+          const range = new vscode.Range(
+            new vscode.Position(result.line - 1, match.column),
+            new vscode.Position(result.line - 1, match.column + match.matchText.length)
+          );
+          edit.replace(uri, range, replaceText);
+        }
+      }
+    }
+
+    const success = await vscode.workspace.applyEdit(edit);
+
+    if (success) {
+      this.rerunSearch();
+      vscode.window.showInformationMessage(
+        `Replaced ${totalMatches} occurrences in ${fileCount} file(s)`
+      );
+    } else {
+      vscode.window.showErrorMessage('Failed to apply replacements');
+    }
+
+    this.postMessage({
+      type: 'replaceComplete',
+      result: { success, replacedCount: success ? totalMatches : 0 }
+    });
   }
 
   private getHtmlForWebview(): string {
