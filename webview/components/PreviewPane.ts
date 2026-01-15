@@ -40,9 +40,23 @@ export class PreviewPane {
     }
 
     const { content, language, highlightLine, path, searchTerm, searchOptions } = this.currentPreview;
+    
+    const lines = content.split('\n');
+    const isLargeFile = lines.length > 1000;
+    
     let contentToShow = content;
     let lineOffset = 0;
     let adjustedHighlightLine: number | undefined = highlightLine;
+    
+    if (isLargeFile && highlightLine !== undefined) {
+      const contextLines = 200;
+      const startLine = Math.max(0, highlightLine - contextLines);
+      const endLine = Math.min(lines.length, highlightLine + contextLines);
+      
+      contentToShow = lines.slice(startLine, endLine).join('\n');
+      lineOffset = startLine;
+      adjustedHighlightLine = highlightLine - lineOffset;
+    }
 
     let highlighted = await highlighter.highlight(
       contentToShow,
@@ -73,6 +87,31 @@ export class PreviewPane {
         </div>
       </div>
     `;
+
+    if (highlightLine !== undefined) {
+      this.scrollToHighlightedLine();
+    }
+  }
+
+  private scrollToHighlightedLine(): void {
+    if (!this.container) {
+      return;
+    }
+
+    setTimeout(() => {
+      const previewContent = this.container?.querySelector('.preview-content') as HTMLElement;
+      const highlightedLine = this.container?.querySelector('.highlighted-line') as HTMLElement;
+      
+      if (highlightedLine && previewContent) {
+        const containerRect = previewContent.getBoundingClientRect();
+        const lineRect = highlightedLine.getBoundingClientRect();
+        const currentScrollTop = previewContent.scrollTop;
+        
+        const targetScrollTop = currentScrollTop + lineRect.top - containerRect.top - (containerRect.height / 2) + (lineRect.height / 2);
+        
+        previewContent.scrollTop = targetScrollTop;
+      }
+    }, 0);
   }
 
   private highlightSearchTerm(

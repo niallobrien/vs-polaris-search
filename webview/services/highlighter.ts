@@ -81,6 +81,13 @@ class Highlighter {
     }
 
     try {
+      const lines = code.split('\n');
+      const maxLines = 10000;
+      
+      if (lines.length > maxLines) {
+        return `<pre><code>${this.escapeHtml(code)}</code></pre>`;
+      }
+
       const html = this.shiki.codeToHtml(code, {
         lang: language,
         theme: this.currentTheme,
