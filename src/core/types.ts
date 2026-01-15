@@ -55,3 +55,11 @@ export interface ConfigDTO {
   previewHighlightSearchTerm: boolean;
   previewShowLineNumbers: boolean;
 }
+
+export interface TogglePreferences {
+  matchCase: boolean;
+  matchWholeWord: boolean;
+  useRegex: boolean;
+  liveSearch: boolean;
+  showSearchDetails: boolean;
+}

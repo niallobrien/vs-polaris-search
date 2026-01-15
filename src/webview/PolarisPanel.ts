@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SearchMode, UIStateDTO } from '../core/types';
+import { SearchMode, UIStateDTO, TogglePreferences } from '../core/types';
 import { ExtensionMessage, WebviewMessage, MessageHandler } from './messageProtocol';
 import { getConfig, onConfigChange, onColorThemeChange } from '../config/settings';
+
+const TOGGLE_PREFS_KEY = 'polaris.togglePreferences';
 
 export class PolarisPanel {
   public static currentPanels: Map<string, PolarisPanel> = new Map();
@@ -10,6 +12,7 @@ export class PolarisPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
+  private readonly context: vscode.ExtensionContext;
   private readonly panelId: string;
   private readonly mode: SearchMode;
   private disposables: vscode.Disposable[] = [];
@@ -19,7 +22,7 @@ export class PolarisPanel {
   private lastExcludeGlobs: string[] = [];
 
   public static createOrShow(
-    extensionUri: vscode.Uri,
+    context: vscode.ExtensionContext,
     mode: SearchMode
   ): PolarisPanel {
     const panelId = `polaris-${++PolarisPanel.panelIdCounter}`;
@@ -35,16 +38,16 @@ export class PolarisPanel {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(extensionUri, 'dist'),
-          vscode.Uri.joinPath(extensionUri, 'webview'),
-          vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
-          vscode.Uri.joinPath(extensionUri, 'node_modules', 'file-icons-js', 'css'),
-          vscode.Uri.joinPath(extensionUri, 'node_modules', 'file-icons-js', 'fonts'),
+          vscode.Uri.joinPath(context.extensionUri, 'dist'),
+          vscode.Uri.joinPath(context.extensionUri, 'webview'),
+          vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
+          vscode.Uri.joinPath(context.extensionUri, 'node_modules', 'file-icons-js', 'css'),
+          vscode.Uri.joinPath(context.extensionUri, 'node_modules', 'file-icons-js', 'fonts'),
         ],
       }
     );
 
-    const polarisPanel = new PolarisPanel(panel, extensionUri, panelId, mode);
+    const polarisPanel = new PolarisPanel(panel, context, panelId, mode);
     PolarisPanel.currentPanels.set(panelId, polarisPanel);
 
     return polarisPanel;
@@ -52,24 +55,27 @@ export class PolarisPanel {
 
   private constructor(
     panel: vscode.WebviewPanel,
-    extensionUri: vscode.Uri,
+    context: vscode.ExtensionContext,
     panelId: string,
     mode: SearchMode
   ) {
     this.panel = panel;
-    this.extensionUri = extensionUri;
+    this.context = context;
+    this.extensionUri = context.extensionUri;
     this.panelId = panelId;
     this.mode = mode;
+
+    const savedPrefs = this.context.globalState.get<TogglePreferences>(TOGGLE_PREFS_KEY);
 
     this.uiState = {
       mode: this.mode,
       busy: false,
-      matchCase: false,
-      matchWholeWord: false,
-      useRegex: false,
-      liveSearch: true,
+      matchCase: savedPrefs?.matchCase ?? false,
+      matchWholeWord: savedPrefs?.matchWholeWord ?? false,
+      useRegex: savedPrefs?.useRegex ?? false,
+      liveSearch: savedPrefs?.liveSearch ?? true,
       showReplace: false,
-      showSearchDetails: false,
+      showSearchDetails: savedPrefs?.showSearchDetails ?? false,
     };
 
     this.panel.webview.html = this.getHtmlForWebview();
@@ -142,21 +148,25 @@ export class PolarisPanel {
       case 'toggleMatchCase':
         this.uiState.matchCase = !this.uiState.matchCase;
         this.sendUIState();
+        this.saveTogglePreferences();
         this.rerunSearch();
         break;
       case 'toggleMatchWholeWord':
         this.uiState.matchWholeWord = !this.uiState.matchWholeWord;
         this.sendUIState();
+        this.saveTogglePreferences();
         this.rerunSearch();
         break;
       case 'toggleUseRegex':
         this.uiState.useRegex = !this.uiState.useRegex;
         this.sendUIState();
+        this.saveTogglePreferences();
         this.rerunSearch();
         break;
       case 'toggleLiveSearch':
         this.uiState.liveSearch = !this.uiState.liveSearch;
         this.sendUIState();
+        this.saveTogglePreferences();
         break;
       case 'toggleReplace':
         this.uiState.showReplace = !this.uiState.showReplace;
@@ -165,6 +175,7 @@ export class PolarisPanel {
       case 'toggleSearchDetails':
         this.uiState.showSearchDetails = !this.uiState.showSearchDetails;
         this.sendUIState();
+        this.saveTogglePreferences();
         break;
       case 'replaceOne':
       case 'replaceAll':
@@ -174,6 +185,18 @@ export class PolarisPanel {
 
   private sendUIState(): void {
     this.postMessage({ type: 'setUIState', state: this.uiState });
+  }
+
+  private async saveTogglePreferences(): Promise<void> {
+    const prefs: TogglePreferences = {
+      matchCase: this.uiState.matchCase,
+      matchWholeWord: this.uiState.matchWholeWord,
+      useRegex: this.uiState.useRegex,
+      liveSearch: this.uiState.liveSearch,
+      showSearchDetails: this.uiState.showSearchDetails,
+    };
+
+    await this.context.globalState.update(TOGGLE_PREFS_KEY, prefs);
   }
 
   private updatePanelTitle(): void {
