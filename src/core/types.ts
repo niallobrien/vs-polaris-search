@@ -20,6 +20,7 @@ export interface SearchResultDTO {
   column: number;
   lineText: string;
   matches: SearchMatch[];
+  mtime: number; // File modification time in milliseconds since epoch
 }
 
 export interface SearchOptions {

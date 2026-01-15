@@ -339,6 +339,90 @@ export class PolarisPanel {
     }
   }
 
+  private async checkAndRefreshStaleFile(
+    filePath: string,
+    expectedMtime: number
+  ): Promise<SearchResultDTO | null> {
+    const workspaceRoot = this.getWorkspaceRoot();
+    if (!workspaceRoot) return null;
+
+    const absolutePath = path.join(workspaceRoot, filePath);
+    
+    try {
+      const stats = await vscode.workspace.fs.stat(vscode.Uri.file(absolutePath));
+      
+      if (stats.mtime !== expectedMtime) {
+        const { findInFiles } = await import('../finders/contentFinder');
+        const results = await findInFiles({
+          query: this.lastQuery,
+          workspaceRoot,
+          matchCase: this.uiState.matchCase,
+          matchWholeWord: this.uiState.matchWholeWord,
+          useRegex: this.uiState.useRegex,
+          includeGlobs: [filePath],
+          excludeGlobs: [],
+        });
+        
+        return results.length > 0 ? results[0] : null;
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  private async replaceInFile(
+    uri: vscode.Uri,
+    replacements: Array<{ line: number; column: number; length: number; replaceText: string }>
+  ): Promise<{ success: boolean; error?: string }> {
+    const openDoc = vscode.workspace.textDocuments.find(
+      doc => doc.uri.toString() === uri.toString()
+    );
+    
+    if (openDoc) {
+      const edit = new vscode.WorkspaceEdit();
+      const sorted = [...replacements].sort((a, b) => b.line - a.line || b.column - a.column);
+      for (const r of sorted) {
+        const range = new vscode.Range(
+          new vscode.Position(r.line - 1, r.column),
+          new vscode.Position(r.line - 1, r.column + r.length)
+        );
+        edit.replace(uri, range, r.replaceText);
+      }
+      const success = await vscode.workspace.applyEdit(edit);
+      if (success) {
+        try {
+          await openDoc.save();
+        } catch (error) {
+          return { success: false, error: String(error) };
+        }
+      }
+      return { success };
+    } else {
+      try {
+        const content = await vscode.workspace.fs.readFile(uri);
+        const text = new TextDecoder().decode(content);
+        const lines = text.split('\n');
+        
+        const sorted = [...replacements].sort((a, b) => b.line - a.line || b.column - a.column);
+        for (const r of sorted) {
+          const lineIdx = r.line - 1;
+          if (lineIdx >= 0 && lineIdx < lines.length) {
+            const line = lines[lineIdx];
+            lines[lineIdx] = line.slice(0, r.column) + r.replaceText + line.slice(r.column + r.length);
+          }
+        }
+        
+        const newContent = new TextEncoder().encode(lines.join('\n'));
+        await vscode.workspace.fs.writeFile(uri, newContent);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    }
+  }
+
   private async handleReplaceOne(
     filePath: string,
     line: number,
@@ -349,25 +433,46 @@ export class PolarisPanel {
     const workspaceRoot = this.getWorkspaceRoot();
     if (!workspaceRoot) return;
 
+    const searchResult = this.lastSearchResults.find(r => r.path === filePath && r.line === line);
+    if (!searchResult) {
+      vscode.window.showWarningMessage(`Could not find search result for ${filePath}:${line}`);
+      return;
+    }
+
+    const refreshed = await this.checkAndRefreshStaleFile(filePath, searchResult.mtime);
+    
+    if (refreshed) {
+      const match = refreshed.matches.find(m => m.column === column);
+      if (match) {
+        line = refreshed.line;
+        column = match.column;
+        matchLength = match.matchText.length;
+      } else {
+        vscode.window.showWarningMessage(`Match no longer exists in ${filePath}`);
+        this.rerunSearch();
+        return;
+      }
+    }
+
     const absolutePath = path.join(workspaceRoot, filePath);
     const uri = vscode.Uri.file(absolutePath);
 
-    const edit = new vscode.WorkspaceEdit();
-    const range = new vscode.Range(
-      new vscode.Position(line - 1, column),
-      new vscode.Position(line - 1, column + matchLength)
-    );
-    edit.replace(uri, range, replaceText);
+    const result = await this.replaceInFile(uri, [{
+      line,
+      column,
+      length: matchLength,
+      replaceText
+    }]);
 
-    const success = await vscode.workspace.applyEdit(edit);
-
-    if (success) {
+    if (result.success) {
       this.rerunSearch();
+    } else if (result.error) {
+      vscode.window.showWarningMessage(`Failed to replace in ${filePath}: ${result.error}`);
     }
 
     this.postMessage({
       type: 'replaceComplete',
-      result: { success, replacedCount: success ? 1 : 0 }
+      result: { success: result.success, replacedCount: result.success ? 1 : 0 }
     });
   }
 
@@ -391,45 +496,78 @@ export class PolarisPanel {
 
     if (confirm !== 'Replace') return;
 
-    const edit = new vscode.WorkspaceEdit();
+    const replacementsByFile = new Map<string, {
+      replacements: Array<{ line: number; column: number; length: number; replaceText: string }>;
+      mtime: number;
+    }>();
 
-    const resultsByFile = new Map<string, SearchResultDTO[]>();
     for (const result of this.lastSearchResults) {
-      const existing = resultsByFile.get(result.path) || [];
-      existing.push(result);
-      resultsByFile.set(result.path, existing);
-    }
-
-    for (const [filePath, results] of resultsByFile) {
-      const uri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-
-      const sorted = results.sort((a, b) => b.line - a.line || b.column - a.column);
-
-      for (const result of sorted) {
-        for (const match of result.matches) {
-          const range = new vscode.Range(
-            new vscode.Position(result.line - 1, match.column),
-            new vscode.Position(result.line - 1, match.column + match.matchText.length)
-          );
-          edit.replace(uri, range, replaceText);
-        }
+      let fileData = replacementsByFile.get(result.path);
+      if (!fileData) {
+        fileData = { replacements: [], mtime: result.mtime };
+        replacementsByFile.set(result.path, fileData);
+      }
+      
+      for (const match of result.matches) {
+        fileData.replacements.push({
+          line: result.line,
+          column: match.column,
+          length: match.matchText.length,
+          replaceText
+        });
       }
     }
 
-    const success = await vscode.workspace.applyEdit(edit);
+    const failedFiles: string[] = [];
+    let successCount = 0;
+
+    for (const [filePath, fileData] of replacementsByFile) {
+      const refreshed = await this.checkAndRefreshStaleFile(filePath, fileData.mtime);
+      
+      let replacements = fileData.replacements;
+      
+      if (refreshed) {
+        replacements = refreshed.matches.map(match => ({
+          line: refreshed.line,
+          column: match.column,
+          length: match.matchText.length,
+          replaceText
+        }));
+      }
+      
+      const uri = vscode.Uri.file(path.join(workspaceRoot, filePath));
+      const result = await this.replaceInFile(uri, replacements);
+      if (result.success) {
+        successCount += replacements.length;
+      } else {
+        failedFiles.push(filePath);
+      }
+    }
+
+    const success = successCount > 0;
 
     if (success) {
       this.rerunSearch();
       vscode.window.showInformationMessage(
-        `Replaced ${totalMatches} occurrences in ${fileCount} file(s)`
+        `Replaced ${successCount} occurrences in ${fileCount - failedFiles.length} file(s)`
       );
+
+      if (failedFiles.length > 0) {
+        vscode.window.showWarningMessage(
+          `Failed to replace in ${failedFiles.length} file(s): ${failedFiles.map(f => path.basename(f)).join(', ')}`
+        );
+      }
     } else {
       vscode.window.showErrorMessage('Failed to apply replacements');
     }
 
     this.postMessage({
       type: 'replaceComplete',
-      result: { success, replacedCount: success ? totalMatches : 0 }
+      result: { 
+        success, 
+        replacedCount: successCount,
+        failedFiles: failedFiles.length > 0 ? failedFiles : undefined
+      }
     });
   }
 

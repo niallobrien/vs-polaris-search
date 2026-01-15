@@ -1,4 +1,6 @@
 import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { SearchResultDTO } from '../core/types';
 
 export interface ContentSearchOptions {
@@ -92,7 +94,7 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
       stderr += data.toString();
     });
 
-    rgProcess.on('close', (code) => {
+    rgProcess.on('close', async (code) => {
       if (code !== 0 && code !== 1) {
         reject(new Error(`rg exited with code ${code}: ${stderr}`));
         return;
@@ -106,6 +108,7 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
           
           if (result.type === 'match') {
             const relativePath = result.data.path.text.replace(workspaceRoot, '').replace(/^\//, '');
+            const absolutePath = path.join(workspaceRoot, relativePath);
             const lineNumber = result.data.line_number;
             const lineText = result.data.lines.text;
 
@@ -117,12 +120,20 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
               afterMatch: lineText.substring(submatch.end),
             }));
 
+            let mtime = Date.now();
+            try {
+              const stats = await fs.stat(absolutePath);
+              mtime = stats.mtimeMs;
+            } catch (e) {
+            }
+
             results.push({
               path: relativePath,
               line: lineNumber,
               column: result.data.submatches[0]?.start || 0,
               lineText: lineText.trimEnd(),
               matches,
+              mtime,
             });
           }
         } catch (e) {
