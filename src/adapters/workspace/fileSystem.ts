@@ -43,6 +43,8 @@ function detectLanguage(filePath: string): string {
     '.html': 'html',
     '.xml': 'xml',
     '.md': 'markdown',
+    '.mdx': 'mdx',
+    '.mdc': 'mdc',
     '.yml': 'yaml',
     '.yaml': 'yaml',
     '.py': 'python',
@@ -65,6 +67,7 @@ function detectLanguage(filePath: string): string {
     '.ps1': 'powershell',
     '.sql': 'sql',
     '.graphql': 'graphql',
+    '.astro': 'astro',
     '.vue': 'vue',
     '.svelte': 'svelte',
   };

@@ -20,6 +20,11 @@ const SUPPORTED_LANGS = [
   'bash',
   'yaml',
   'markdown',
+  'mdx',
+  'mdc',
+  'astro',
+  'svelte',
+  'vue',
 ];
 
 class Highlighter {
