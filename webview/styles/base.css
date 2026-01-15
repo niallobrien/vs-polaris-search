@@ -17,6 +17,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
@@ -28,7 +35,7 @@ body {
 .polaris-app {
   display: grid;
   grid-template-rows: auto 1fr;
-  height: 100vh;
+  height: 100%;
   width: 100%;
 }
 
@@ -45,9 +52,15 @@ body {
   overflow: hidden;
 }
 
-.polaris-results,
-.polaris-preview {
+.polaris-results {
   background: var(--bg-color);
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.polaris-preview {
+  background: var(--bg-color);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }

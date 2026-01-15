@@ -44,17 +44,6 @@ export class PreviewPane {
     let lineOffset = 0;
     let adjustedHighlightLine: number | undefined = highlightLine;
 
-    if (highlightLine !== undefined) {
-      const lines = content.split('\n');
-      const contextLines = 10;
-      const startLine = Math.max(0, highlightLine - contextLines - 1);
-      const endLine = Math.min(lines.length, highlightLine + contextLines);
-      
-      contentToShow = lines.slice(startLine, endLine).join('\n');
-      lineOffset = startLine;
-      adjustedHighlightLine = highlightLine - lineOffset;
-    }
-
     let highlighted = await highlighter.highlight(
       contentToShow,
       language,
