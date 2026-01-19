@@ -19,7 +19,8 @@
   ],
   "activationEvents": [
     "onCommand:polaris.findInFiles",
-    "onCommand:polaris.findFiles"
+    "onCommand:polaris.findFiles",
+    "onCommand:polaris.findInOpenFiles"
   ],
   "main": "./dist/extension.js",
   "icon": "media/polaris-icon.png",
@@ -33,6 +34,11 @@
       {
         "command": "polaris.findFiles",
         "title": "Find Files",
+        "category": "Polaris"
+      },
+      {
+        "command": "polaris.findInOpenFiles",
+        "title": "Find in Open Files",
         "category": "Polaris"
       }
     ],
@@ -50,6 +56,13 @@
         "mac": "cmd+alt+f",
         "win": "ctrl+alt+f",
         "linux": "ctrl+alt+f"
+      },
+      {
+        "command": "polaris.findInOpenFiles",
+        "key": "ctrl+alt+o",
+        "mac": "cmd+alt+o",
+        "win": "ctrl+alt+o",
+        "linux": "ctrl+alt+o"
       }
     ],
     "configuration": {

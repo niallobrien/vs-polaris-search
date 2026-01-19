@@ -1,5 +1,5 @@
 import { vscode } from '../services/vscode';
-import { FileResultDTO, SearchResultDTO } from '../../src/core/types';
+import { FileResultDTO, SearchResultDTO, SearchMode } from '../../src/core/types';
 
 type ResultItem = FileResultDTO | SearchResultDTO;
 
@@ -8,10 +8,15 @@ export class ResultsList {
   private results: ResultItem[] = [];
   private selectedIndex = -1;
   private mode: 'files' | 'content' = 'files';
+  private currentSearchMode: SearchMode = 'findInFiles';
 
   mount(container: HTMLElement): void {
     this.container = container;
     this.render();
+  }
+
+  setSearchMode(searchMode: SearchMode): void {
+    this.currentSearchMode = searchMode;
   }
 
   setResults(results: FileResultDTO[]): void {
@@ -202,9 +207,15 @@ export class ResultsList {
     }
 
     if (this.results.length === 0) {
+      let placeholderText = 'No results yet. Start searching...';
+      
+      if (this.currentSearchMode === 'findInOpenFiles') {
+        placeholderText = 'No files are currently open';
+      }
+      
       this.container.innerHTML = `
         <div class="results-list">
-          <div class="results-placeholder">No results yet. Start searching...</div>
+          <div class="results-placeholder">${placeholderText}</div>
         </div>
       `;
       return;

@@ -21,7 +21,14 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   );
 
-  context.subscriptions.push(findFilesCommand, findInFilesCommand);
+  const findInOpenFilesCommand = vscode.commands.registerCommand(
+    'polaris.findInOpenFiles',
+    () => {
+      PolarisPanel.createOrShow(context, 'findInOpenFiles');
+    }
+  );
+
+  context.subscriptions.push(findFilesCommand, findInFilesCommand, findInOpenFilesCommand);
 }
 
 export function deactivate(): void {}

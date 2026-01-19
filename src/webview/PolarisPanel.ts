@@ -33,7 +33,7 @@ export class PolarisPanel {
 
     const panel = vscode.window.createWebviewPanel(
       'polaris',
-      mode === 'findFiles' ? 'Find Files' : 'Find in Files',
+      mode === 'findFiles' ? 'Find Files' : mode === 'findInOpenFiles' ? 'Find in Open Files' : 'Find in Files',
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -203,7 +203,37 @@ export class PolarisPanel {
   }
 
   private updatePanelTitle(): void {
-    this.panel.title = this.uiState.mode === 'findFiles' ? 'Find Files' : 'Find in Files';
+    if (this.uiState.mode === 'findFiles') {
+      this.panel.title = 'Find Files';
+    } else if (this.uiState.mode === 'findInOpenFiles') {
+      this.panel.title = 'Find in Open Files';
+    } else {
+      this.panel.title = 'Find in Files';
+    }
+  }
+
+  private getOpenFilePaths(): string[] {
+    const openFiles: string[] = [];
+    const workspaceRoot = this.getWorkspaceRoot();
+    
+    if (!workspaceRoot) {
+      return openFiles;
+    }
+
+    for (const tabGroup of vscode.window.tabGroups.all) {
+      for (const tab of tabGroup.tabs) {
+        if (tab.input instanceof vscode.TabInputText) {
+          const uri = tab.input.uri;
+          
+          if (uri.scheme === 'file' && uri.fsPath.startsWith(workspaceRoot)) {
+            const relativePath = uri.fsPath.substring(workspaceRoot.length + 1);
+            openFiles.push(relativePath);
+          }
+        }
+      }
+    }
+    
+    return openFiles;
   }
 
   private rerunSearch(): void {
@@ -236,6 +266,37 @@ export class PolarisPanel {
         this.postMessage({
           type: 'setFileResults',
           results
+        });
+      } else if (this.uiState.mode === 'findInOpenFiles') {
+        const openFilePaths = this.getOpenFilePaths();
+        
+        if (openFilePaths.length === 0) {
+          this.postMessage({ type: 'setBusy', busy: false });
+          this.lastSearchResults = [];
+          this.postMessage({
+            type: 'setSearchResults',
+            results: [],
+            totalCount: 0,
+          });
+          return;
+        }
+        
+        const { findInFiles } = await import('../finders/contentFinder');
+        const results = await findInFiles({
+          query,
+          workspaceRoot,
+          matchCase: this.uiState.matchCase,
+          matchWholeWord: this.uiState.matchWholeWord,
+          useRegex: this.uiState.useRegex,
+          filePaths: openFilePaths,
+        });
+        
+        this.lastSearchResults = results;
+        
+        this.postMessage({
+          type: 'setSearchResults',
+          results,
+          totalCount: results.length,
         });
       } else {
         const { findInFiles } = await import('../finders/contentFinder');

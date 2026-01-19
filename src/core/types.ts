@@ -1,4 +1,4 @@
-export type SearchMode = 'findFiles' | 'findInFiles';
+export type SearchMode = 'findFiles' | 'findInFiles' | 'findInOpenFiles';
 
 export interface FileResultDTO {
   path: string;

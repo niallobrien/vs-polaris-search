@@ -32,38 +32,43 @@ export class SearchOptions {
   }
 
   private getTooltip(option: string): string {
-    const isFindFiles = this.state.mode === 'findFiles';
+    const mode = this.state.mode;
     
-    const tooltips: Record<string, { findFiles: string; findInFiles: string }> = {
+    const tooltips: Record<string, { findFiles: string; findInFiles: string; findInOpenFiles: string }> = {
       matchCase: {
         findFiles: 'Match Case - Filter results where path matches exact case (Alt+C)',
         findInFiles: 'Match Case (Alt+C)',
+        findInOpenFiles: 'Match Case (Alt+C)',
       },
       matchWholeWord: {
         findFiles: 'Match Whole Word - Match complete path segments or words (Alt+W)',
         findInFiles: 'Match Whole Word (Alt+W)',
+        findInOpenFiles: 'Match Whole Word (Alt+W)',
       },
       useRegex: {
         findFiles: 'Use Regular Expression - Match paths using regex pattern (Alt+R)',
         findInFiles: 'Use Regular Expression (Alt+R)',
+        findInOpenFiles: 'Use Regular Expression (Alt+R)',
       },
       liveSearch: {
         findFiles: 'Live Search (Alt+L)',
         findInFiles: 'Live Search (Alt+L)',
+        findInOpenFiles: 'Live Search (Alt+L)',
       },
       showReplace: {
         findFiles: 'Toggle Replace (Cmd+Shift+H)',
         findInFiles: 'Toggle Replace (Cmd+Shift+H)',
+        findInOpenFiles: 'Toggle Replace (Cmd+Shift+H)',
       },
     };
     
-    return isFindFiles ? tooltips[option].findFiles : tooltips[option].findInFiles;
+    return tooltips[option][mode];
   }
 
   private render(): void {
     if (!this.container) return;
 
-    const showReplaceButton = this.state.mode === 'findInFiles' ? `
+    const showReplaceButton = this.state.mode !== 'findFiles' ? `
       <button class="option-btn ${this.state.showReplace ? 'active' : ''}" data-option="showReplace" title="${this.getTooltip('showReplace')}">
         <i class="codicon codicon-replace"></i>
       </button>

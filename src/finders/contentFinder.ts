@@ -11,6 +11,7 @@ export interface ContentSearchOptions {
   useRegex?: boolean;
   includeGlobs?: string[];
   excludeGlobs?: string[];
+  filePaths?: string[];
 }
 
 export async function findInFiles(options: ContentSearchOptions): Promise<SearchResultDTO[]> {
@@ -22,6 +23,7 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
     useRegex = false,
     includeGlobs = [],
     excludeGlobs = [],
+    filePaths = [],
   } = options;
 
   if (!query.trim()) {
@@ -63,21 +65,39 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
     }
   }
 
-  for (const glob of excludeGlobs) {
-    if (glob.trim()) {
-      args.push('--glob', `!${glob}`);
+  // If filePaths is provided, search only in those files
+  if (filePaths.length > 0) {
+    for (const glob of excludeGlobs) {
+      if (glob.trim()) {
+        args.push('--glob', `!${glob}`);
+      }
     }
-  }
 
-  for (const glob of includeGlobs) {
-    if (glob.trim()) {
-      args.push('--glob', glob);
+    args.push('--');
+    args.push(query);
+    
+    // Add absolute paths for each file
+    for (const filePath of filePaths) {
+      args.push(path.join(workspaceRoot, filePath));
     }
-  }
+  } else {
+    // Original behavior: use globs and search in workspace root
+    for (const glob of excludeGlobs) {
+      if (glob.trim()) {
+        args.push('--glob', `!${glob}`);
+      }
+    }
 
-  args.push('--');
-  args.push(query);
-  args.push(workspaceRoot);
+    for (const glob of includeGlobs) {
+      if (glob.trim()) {
+        args.push('--glob', glob);
+      }
+    }
+
+    args.push('--');
+    args.push(query);
+    args.push(workspaceRoot);
+  }
 
   return new Promise((resolve, reject) => {
     const results: SearchResultDTO[] = [];

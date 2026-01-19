@@ -53,7 +53,14 @@ export class SearchInput {
     if (prefixBtn) {
       prefixBtn.addEventListener('mousedown', (e) => e.preventDefault());
       prefixBtn.addEventListener('click', () => {
-        const newMode = this.currentMode === 'findInFiles' ? 'findFiles' : 'findInFiles';
+        let newMode: SearchMode;
+        if (this.currentMode === 'findInFiles') {
+          newMode = 'findInOpenFiles';
+        } else if (this.currentMode === 'findInOpenFiles') {
+          newMode = 'findFiles';
+        } else {
+          newMode = 'findInFiles';
+        }
         vscode.postMessage({ type: 'modeChanged', mode: newMode });
       });
     }
@@ -95,19 +102,32 @@ export class SearchInput {
     const icon = prefixBtn?.querySelector('.codicon');
     
     if (prefixBtn && icon) {
-      const iconName = this.currentMode === 'findInFiles' ? 'search' : 'file';
-      icon.className = `codicon codicon-${iconName}`;
+      let iconName: string;
+      let tooltip: string;
       
-      const tooltip = this.currentMode === 'findInFiles'
-        ? 'Find in Files (⌘M to search files)'
-        : 'Find Files (⌘M to search content)';
+      if (this.currentMode === 'findInFiles') {
+        iconName = 'search';
+        tooltip = 'Find in Files (⌘M to cycle modes)';
+      } else if (this.currentMode === 'findInOpenFiles') {
+        iconName = 'files';
+        tooltip = 'Find in Open Files (⌘M to cycle modes)';
+      } else {
+        iconName = 'file';
+        tooltip = 'Find Files (⌘M to cycle modes)';
+      }
+      
+      icon.className = `codicon codicon-${iconName}`;
       prefixBtn.setAttribute('title', tooltip);
     }
     
     if (this.inputElement) {
-      this.inputElement.placeholder = this.currentMode === 'findInFiles'
-        ? 'Search in files...'
-        : 'Search files...';
+      if (this.currentMode === 'findInFiles') {
+        this.inputElement.placeholder = 'Search in files...';
+      } else if (this.currentMode === 'findInOpenFiles') {
+        this.inputElement.placeholder = 'Search in open files...';
+      } else {
+        this.inputElement.placeholder = 'Search files...';
+      }
     }
   }
 

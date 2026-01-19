@@ -93,6 +93,7 @@ export class App {
     this.uiState = state;
     
     this.searchInput.setMode(state.mode);
+    this.resultsList.setSearchMode(state.mode);
     this.searchOptions.setState({
       matchCase: state.matchCase,
       matchWholeWord: state.matchWholeWord,
@@ -104,7 +105,7 @@ export class App {
     
     this.searchInput.setLiveSearch(state.liveSearch);
     
-    this.replaceInput.setVisible(state.showReplace && state.mode === 'findInFiles');
+    this.replaceInput.setVisible(state.showReplace && state.mode !== 'findFiles');
     
     this.updateResultsDisplay(state.mode);
     
@@ -114,7 +115,7 @@ export class App {
     this.updateResultSummary('');
   }
 
-  private updateResultsDisplay(mode: 'findFiles' | 'findInFiles'): void {
+  private updateResultsDisplay(mode: 'findFiles' | 'findInFiles' | 'findInOpenFiles'): void {
     const resultsContainer = document.getElementById('results-list');
     if (!resultsContainer) return;
 
@@ -227,7 +228,14 @@ export class App {
 
   private toggleMode(): void {
     if (!this.uiState) return;
-    const newMode = this.uiState.mode === 'findInFiles' ? 'findFiles' : 'findInFiles';
+    let newMode: 'findFiles' | 'findInFiles' | 'findInOpenFiles';
+    if (this.uiState.mode === 'findInFiles') {
+      newMode = 'findInOpenFiles';
+    } else if (this.uiState.mode === 'findInOpenFiles') {
+      newMode = 'findFiles';
+    } else {
+      newMode = 'findInFiles';
+    }
     vscode.postMessage({ type: 'modeChanged', mode: newMode });
   }
 
@@ -236,7 +244,7 @@ export class App {
   }
 
   private handleReplaceOne(): void {
-    if (!this.uiState || this.uiState.mode !== 'findInFiles') return;
+    if (!this.uiState || this.uiState.mode === 'findFiles') return;
     
     const selected = this.resultsList.getSelectedResult();
     if (!selected) return;
@@ -254,7 +262,7 @@ export class App {
   }
 
   private handleReplaceAll(): void {
-    if (!this.uiState || this.uiState.mode !== 'findInFiles') return;
+    if (!this.uiState || this.uiState.mode === 'findFiles') return;
     
     const replaceText = this.replaceInput.getValue();
     
