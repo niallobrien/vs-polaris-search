@@ -15,7 +15,7 @@ function resolveSystemTheme(): string {
 }
 
 export function getConfig(): ConfigDTO {
-  const config = vscode.workspace.getConfiguration('polaris');
+  const config = vscode.workspace.getConfiguration('polaris-search');
   const themeSetting = config.get<string>('theme', 'system');
   
   return {

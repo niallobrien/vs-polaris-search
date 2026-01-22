@@ -1,28 +1,28 @@
 import * as vscode from 'vscode';
 import { PolarisPanel } from './webview/PolarisPanel';
 
-const TOGGLE_PREFS_KEY = 'polaris.togglePreferences';
+const TOGGLE_PREFS_KEY = 'polaris-search.togglePreferences';
 
 export function activate(context: vscode.ExtensionContext): void {
   // Enable Settings Sync for toggle preferences
   context.globalState.setKeysForSync([TOGGLE_PREFS_KEY]);
 
   const findFilesCommand = vscode.commands.registerCommand(
-    'polaris.findFiles',
+    'polaris-search.findFiles',
     () => {
       PolarisPanel.createOrShow(context, 'findFiles');
     }
   );
 
   const findInFilesCommand = vscode.commands.registerCommand(
-    'polaris.findInFiles',
+    'polaris-search.findInFiles',
     () => {
       PolarisPanel.createOrShow(context, 'findInFiles');
     }
   );
 
   const findInOpenFilesCommand = vscode.commands.registerCommand(
-    'polaris.findInOpenFiles',
+    'polaris-search.findInOpenFiles',
     () => {
       PolarisPanel.createOrShow(context, 'findInOpenFiles');
     }

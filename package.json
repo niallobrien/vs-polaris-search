@@ -20,45 +20,45 @@
   "main": "./dist/extension.js",
   "icon": "media/polaris-icon.png",
   "activationEvents": [
-    "onCommand:polaris.findInFiles",
-    "onCommand:polaris.findFiles",
-    "onCommand:polaris.findInOpenFiles"
+    "onCommand:polaris-search.findInFiles",
+    "onCommand:polaris-search.findFiles",
+    "onCommand:polaris-search.findInOpenFiles"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "polaris.findInFiles",
+        "command": "polaris-search.findInFiles",
         "title": "Find in Files",
         "category": "Polaris: Search"
       },
       {
-        "command": "polaris.findFiles",
+        "command": "polaris-search.findFiles",
         "title": "Find Files",
         "category": "Polaris: Search"
       },
       {
-        "command": "polaris.findInOpenFiles",
+        "command": "polaris-search.findInOpenFiles",
         "title": "Find in Open Files",
         "category": "Polaris: Search"
       }
     ],
     "keybindings": [
       {
-        "command": "polaris.findInFiles",
+        "command": "polaris-search.findInFiles",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
         "win": "ctrl+alt+p",
         "linux": "ctrl+alt+p"
       },
       {
-        "command": "polaris.findFiles",
+        "command": "polaris-search.findFiles",
         "key": "ctrl+alt+f",
         "mac": "cmd+alt+f",
         "win": "ctrl+alt+f",
         "linux": "ctrl+alt+f"
       },
       {
-        "command": "polaris.findInOpenFiles",
+        "command": "polaris-search.findInOpenFiles",
         "key": "ctrl+alt+o",
         "mac": "cmd+alt+o",
         "win": "ctrl+alt+o",
@@ -68,7 +68,7 @@
     "configuration": {
       "title": "Polaris: Search",
       "properties": {
-        "polaris.theme": {
+        "polaris-search.theme": {
           "type": "string",
           "default": "system",
           "enum": [
@@ -107,26 +107,26 @@
           ],
           "description": "Syntax highlighting theme for preview pane"
         },
-        "polaris.previewLines": {
+        "polaris-search.previewLines": {
           "type": "number",
           "default": 10,
           "minimum": 3,
           "maximum": 50,
           "description": "Number of context lines to show in preview"
         },
-        "polaris.liveSearchDelay": {
+        "polaris-search.liveSearchDelay": {
           "type": "number",
           "default": 300,
           "minimum": 100,
           "maximum": 2000,
           "description": "Delay in milliseconds before live search triggers"
         },
-        "polaris.previewHighlightSearchTerm": {
+        "polaris-search.previewHighlightSearchTerm": {
           "type": "boolean",
           "default": true,
           "description": "Highlight the search term match in the preview pane"
         },
-        "polaris.previewShowLineNumbers": {
+        "polaris-search.previewShowLineNumbers": {
           "type": "boolean",
           "default": true,
           "description": "Show line numbers in the preview pane"

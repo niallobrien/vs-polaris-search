@@ -32,19 +32,19 @@ body {
   overflow: hidden;
 }
 
-.polaris-app {
+.polaris-search-app {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100%;
   width: 100%;
 }
 
-.polaris-header {
+.polaris-search-header {
   padding: 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.polaris-content {
+.polaris-search-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
@@ -52,13 +52,13 @@ body {
   overflow: hidden;
 }
 
-.polaris-results {
+.polaris-search-results {
   background: var(--bg-color);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-.polaris-preview {
+.polaris-search-preview {
   background: var(--bg-color);
   overflow: hidden;
   display: flex;

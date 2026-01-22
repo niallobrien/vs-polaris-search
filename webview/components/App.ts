@@ -138,8 +138,8 @@ export class App {
     if (!this.container) return;
 
     this.container.innerHTML = `
-      <div class="polaris-app">
-        <div class="polaris-header">
+      <div class="polaris-search-app">
+        <div class="polaris-search-header">
           <div class="search-row">
             <div id="search-input"></div>
             <div id="search-options"></div>
@@ -147,9 +147,9 @@ export class App {
           <div id="replace-input"></div>
           <div id="result-summary" class="result-summary"></div>
         </div>
-        <div class="polaris-content">
-          <div class="polaris-results" id="results-list"></div>
-          <div class="polaris-preview" id="preview-pane"></div>
+        <div class="polaris-search-content">
+          <div class="polaris-search-results" id="results-list"></div>
+          <div class="polaris-search-preview" id="preview-pane"></div>
         </div>
       </div>
     `;

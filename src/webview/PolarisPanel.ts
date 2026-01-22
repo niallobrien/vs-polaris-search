@@ -13,7 +13,7 @@ import {
   onColorThemeChange,
 } from "../config/settings";
 
-const TOGGLE_PREFS_KEY = "polaris.togglePreferences";
+const TOGGLE_PREFS_KEY = "polaris-search.togglePreferences";
 
 export class PolarisPanel {
   public static currentPanels: Map<string, PolarisPanel> = new Map();
@@ -41,7 +41,7 @@ export class PolarisPanel {
       : undefined;
 
     const panel = vscode.window.createWebviewPanel(
-      "polaris",
+      "polaris-search",
       mode === "findFiles"
         ? "Find Files"
         : mode === "findInOpenFiles"
