@@ -2,6 +2,8 @@
 
 Fast, beautiful search and replace for VS Code.
 
+![Polaris Search Demo](polaris-search.gif)
+
 ## Features
 
 ✨ **Fuzzy File Finding** - Quickly locate files in your workspace with intelligent fuzzy matching
