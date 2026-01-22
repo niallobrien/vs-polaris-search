@@ -444,8 +444,12 @@
   counter-reset: line-number calc(var(--line-number-start) - 1);
 }
 
+.preview-content.show-line-numbers pre code {
+  display: table;
+}
+
 .preview-content.show-line-numbers .line {
-  display: block;
+  display: table-row;
 }
 
 .preview-content.show-line-numbers .line::before {
