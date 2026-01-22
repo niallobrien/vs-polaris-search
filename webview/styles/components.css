@@ -282,7 +282,7 @@
   margin: 0;
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size);
-  line-height: 1;
+  line-height: 1.4;
 }
 
 .preview-content code {
