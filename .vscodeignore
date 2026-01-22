@@ -33,9 +33,6 @@ PLAN.md
 docs/**
 *.bak
 
-# Media files (exclude large assets from package)
-polaris-search.gif
-
 # Build artifacts
 **/*.map
 **/*.ts.map

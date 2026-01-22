@@ -2,7 +2,7 @@
 
 Fast, beautiful search and replace for VS Code.
 
-![Polaris Search Demo](https://github.com/niallobrien/vs-polaris-search/blob/main/polaris-search.gif)
+![Polaris Search Demo](polaris-search.gif)
 
 ## Features
 
