@@ -9,6 +9,7 @@ node_modules/**
 # Source files (only include dist)
 src/**
 webview/**
+!webview/styles/**
 out/**
 
 # Config files
