@@ -1,15 +1,16 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+Note: We no longer use `bd` (beads) in this project.
 
 ## Quick Reference
 
+Use GitHub Issues/PRs for tracking work.
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+# Typical flow
+git checkout -b feat/<short-name>
+# ...work, commits...
+git pull --rebase
+git push -u origin HEAD
 ```
 
 ## Landing the Plane (Session Completion)
@@ -24,7 +25,6 @@ bd sync               # Sync with git
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
@@ -44,4 +44,4 @@ bd sync               # Sync with git
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
 - At the end of each plan, give me a list of unresolved questions to answer, if any.
 
-Use 'bd' for task tracking
+Use GitHub Issues for task tracking
