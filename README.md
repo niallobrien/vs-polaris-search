@@ -1,4 +1,4 @@
-# Polaris Search
+# Polaris: Search
 
 Fast, beautiful search and replace for VS Code.
 

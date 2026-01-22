@@ -1,9 +1,15 @@
 .vscode-test
 .vscode
 node_modules
+!node_modules/@vscode/codicons
+!node_modules/file-icons-js
 out
 src
-webview
+webview/components
+webview/services
+webview/main.ts
+webview/state.ts
+webview/types.d.ts
 tsconfig.json
 tsconfig.webview.json
 esbuild.js

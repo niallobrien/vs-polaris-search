@@ -1,8 +1,9 @@
-# Polaris VS Code Extension - Implementation Plan
+# Polaris: Search VS Code Extension - Implementation Plan
 
 ## Phase 1: Foundation - Detailed Implementation Checklist
 
 ### 1.1 Project Initialization
+
 - [ ] Create `package.json` with extension metadata, activation events, commands, keybindings, and configuration schema
 - [ ] Create `tsconfig.json` for extension (Node.js/CommonJS target)
 - [ ] Create `tsconfig.webview.json` for webview (ES modules, DOM lib)
@@ -16,6 +17,7 @@
 ---
 
 ### 1.2 Extension Entry Point
+
 - [ ] Create `src/extension.ts` with `activate()` and `deactivate()`
 - [ ] Register commands: `polaris.findFiles`, `polaris.findInFiles`
 - [ ] Each command creates a new `PolarisPanel` instance
@@ -25,6 +27,7 @@
 ---
 
 ### 1.3 WebviewPanel Manager
+
 - [ ] Create `src/webview/PolarisPanel.ts` class
 - [ ] Implement panel creation with `vscode.window.createWebviewPanel()`
 - [ ] Configure: `enableScripts: true`, `retainContextWhenHidden: true`, `localResourceRoots`
@@ -38,6 +41,7 @@
 ---
 
 ### 1.4 Message Protocol
+
 - [ ] Create `src/core/types.ts` with shared type definitions
 - [ ] Create `src/webview/messageProtocol.ts` with `ExtensionMessage` and `WebviewMessage` types
 - [ ] Implement message handler registration in `PolarisPanel`
@@ -48,6 +52,7 @@
 ---
 
 ### 1.5 Webview HTML Shell
+
 - [ ] Create `webview/index.html` - minimal HTML structure with CSP
 - [ ] Create `webview/styles/base.css` - CSS variables, reset, layout grid
 - [ ] Create `webview/styles/components.css` - component-specific styles
@@ -59,6 +64,7 @@
 ---
 
 ### 1.6 Component Shell (UI Structure Only)
+
 - [ ] Create `webview/components/App.ts` - root component, layout orchestration
 - [ ] Create `webview/components/ModeTabs.ts` - Find Files / Find in Files tabs
 - [ ] Create `webview/components/SearchInput.ts` - main search input field
@@ -72,6 +78,7 @@
 ---
 
 ### 1.7 Shiki Integration
+
 - [ ] Install `shiki` package
 - [ ] Create `webview/services/highlighter.ts` - Shiki highlighter singleton
 - [ ] Bundle OpenCode themes as JSON in `webview/themes/`
@@ -84,6 +91,7 @@
 ---
 
 ### 1.8 Configuration
+
 - [ ] Create `src/config/settings.ts` - read VS Code configuration
 - [ ] Define settings: `polaris.theme`, `polaris.previewLines`, `polaris.liveSearchDelay`
 - [ ] Pass initial config to webview on panel creation
@@ -94,6 +102,7 @@
 ---
 
 ### 1.9 Icon Asset
+
 - [ ] Create `media/polaris-icon.svg` - simple star icon for extension
 
 **Acceptance Criteria:** Icon displays in extension list and marketplace
@@ -102,22 +111,23 @@
 
 ## Phase 1 Deliverables Summary
 
-| Component | Files |
-|-----------|-------|
+| Component    | Files                                                                  |
+| ------------ | ---------------------------------------------------------------------- |
 | Build Config | `package.json`, `tsconfig.json`, `tsconfig.webview.json`, `esbuild.js` |
-| Extension | `src/extension.ts`, `src/webview/PolarisPanel.ts` |
-| Protocol | `src/core/types.ts`, `src/webview/messageProtocol.ts` |
-| Webview | `webview/index.html`, `webview/main.ts`, `webview/state.ts` |
-| Components | 7 component files in `webview/components/` |
-| Styles | `webview/styles/base.css`, `webview/styles/components.css` |
-| Services | `webview/services/vscode.ts`, `webview/services/highlighter.ts` |
-| Themes | Theme JSON files in `webview/themes/` |
-| Config | `src/config/settings.ts` |
-| Assets | `media/polaris-icon.svg` |
+| Extension    | `src/extension.ts`, `src/webview/PolarisPanel.ts`                      |
+| Protocol     | `src/core/types.ts`, `src/webview/messageProtocol.ts`                  |
+| Webview      | `webview/index.html`, `webview/main.ts`, `webview/state.ts`            |
+| Components   | 7 component files in `webview/components/`                             |
+| Styles       | `webview/styles/base.css`, `webview/styles/components.css`             |
+| Services     | `webview/services/vscode.ts`, `webview/services/highlighter.ts`        |
+| Themes       | Theme JSON files in `webview/themes/`                                  |
+| Config       | `src/config/settings.ts`                                               |
+| Assets       | `media/polaris-icon.svg`                                               |
 
 ---
 
 ## Phase 2: Find Files (~2 days)
+
 - [ ] Tool detection (ripgrep, fd)
 - [ ] File finder implementation
 - [ ] Fuzzy sorter (fuzzysort)
@@ -127,6 +137,7 @@
 ---
 
 ## Phase 3: Find in Files (~3 days)
+
 - [ ] Content finder with ripgrep
 - [ ] Search options (case, word, regex, live toggle)
 - [ ] Include/exclude fields
@@ -136,6 +147,7 @@
 ---
 
 ## Phase 4: Replace (~2 days)
+
 - [ ] Replace input UI
 - [ ] Replace/Replace All actions
 - [ ] Preserve case logic
@@ -143,6 +155,7 @@
 ---
 
 ## Phase 5: Polish (~2 days)
+
 - [ ] Error handling
 - [ ] Performance optimization
 - [ ] README and marketplace listing
@@ -156,22 +169,22 @@
 ```typescript
 // Extension → Webview
 type ExtensionMessage =
-  | { type: 'setTheme'; theme: string }
-  | { type: 'setBusy'; busy: boolean }
-  | { type: 'setFileResults'; results: FileResultDTO[] }
-  | { type: 'setSearchResults'; results: SearchResultDTO[]; totalCount: number }
-  | { type: 'setPreview'; preview: PreviewDTO }
-  | { type: 'setUIState'; state: UIStateDTO };
+  | { type: "setTheme"; theme: string }
+  | { type: "setBusy"; busy: boolean }
+  | { type: "setFileResults"; results: FileResultDTO[] }
+  | { type: "setSearchResults"; results: SearchResultDTO[]; totalCount: number }
+  | { type: "setPreview"; preview: PreviewDTO }
+  | { type: "setUIState"; state: UIStateDTO };
 
-// Webview → Extension  
+// Webview → Extension
 type WebviewMessage =
-  | { type: 'queryChanged'; query: string }
-  | { type: 'resultSelected'; index: number }
-  | { type: 'openFile'; path: string; mode: 'current' | 'split' | 'tab' }
-  | { type: 'toggleMatchCase' }
-  | { type: 'toggleReplace' }
-  | { type: 'replaceAll' }
-  // ... etc
+  | { type: "queryChanged"; query: string }
+  | { type: "resultSelected"; index: number }
+  | { type: "openFile"; path: string; mode: "current" | "split" | "tab" }
+  | { type: "toggleMatchCase" }
+  | { type: "toggleReplace" }
+  | { type: "replaceAll" };
+// ... etc
 ```
 
 ### Search Result Item Format (Flat List)
@@ -189,26 +202,26 @@ type WebviewMessage =
 
 ## Keybindings
 
-| Action | Mac | Windows/Linux |
-|--------|-----|---------------|
-| Find Files | `Cmd+Shift+T` | `Ctrl+Shift+T` |
-| Find in Files | `Cmd+Shift+G` | `Ctrl+Shift+G` |
-| Toggle Match Case | `Alt+Cmd+C` | `Alt+Ctrl+C` |
-| Toggle Whole Word | `Alt+Cmd+W` | `Alt+Ctrl+W` |
-| Toggle Regex | `Alt+Cmd+R` | `Alt+Ctrl+R` |
-| Toggle Live Search | `Alt+Cmd+L` | `Alt+Ctrl+L` |
-| Toggle Search Details | `Alt+Cmd+D` | `Alt+Ctrl+D` |
-| Toggle Replace | `Alt+Cmd+H` | `Alt+Ctrl+H` |
-| Replace Selected | `Cmd+Shift+1` | `Ctrl+Shift+1` |
-| Replace All | `Cmd+Shift+Enter` | `Ctrl+Shift+Enter` |
+| Action                | Mac               | Windows/Linux      |
+| --------------------- | ----------------- | ------------------ |
+| Find Files            | `Cmd+Shift+T`     | `Ctrl+Shift+T`     |
+| Find in Files         | `Cmd+Shift+G`     | `Ctrl+Shift+G`     |
+| Toggle Match Case     | `Alt+Cmd+C`       | `Alt+Ctrl+C`       |
+| Toggle Whole Word     | `Alt+Cmd+W`       | `Alt+Ctrl+W`       |
+| Toggle Regex          | `Alt+Cmd+R`       | `Alt+Ctrl+R`       |
+| Toggle Live Search    | `Alt+Cmd+L`       | `Alt+Ctrl+L`       |
+| Toggle Search Details | `Alt+Cmd+D`       | `Alt+Ctrl+D`       |
+| Toggle Replace        | `Alt+Cmd+H`       | `Alt+Ctrl+H`       |
+| Replace Selected      | `Cmd+Shift+1`     | `Ctrl+Shift+1`     |
+| Replace All           | `Cmd+Shift+Enter` | `Ctrl+Shift+Enter` |
 
 ---
 
 ## Themes (from OpenCode)
 
 ```
-system, tokyonight, everforest, ayu, catppuccin, catppuccin-macchiato, 
-gruvbox, kanagawa, nord, matrix, one-dark, github-dark, github-light, 
+system, tokyonight, everforest, ayu, catppuccin, catppuccin-macchiato,
+gruvbox, kanagawa, nord, matrix, one-dark, github-dark, github-light,
 dracula, solarized-dark, solarized-light
 ```
 

@@ -5,6 +5,7 @@ Note: We no longer use `bd` (beads) in this project.
 ## Quick Reference
 
 Use GitHub Issues/PRs for tracking work.
+
 ```bash
 # Typical flow
 git checkout -b feat/<short-name>
