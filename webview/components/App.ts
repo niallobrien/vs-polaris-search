@@ -67,11 +67,18 @@ export class App {
   }
 
   async setConfig(config: ConfigDTO): Promise<void> {
+    console.log("[Polaris Webview] setConfig called with theme:", config.theme);
     this.searchInput.setDebounceDelay(config.liveSearchDelay);
 
     this.previewPane.setConfig(config);
 
     const previousTheme = highlighter.getTheme();
+    console.log(
+      "[Polaris Webview] previousTheme:",
+      previousTheme,
+      "newTheme:",
+      config.theme,
+    );
 
     try {
       await highlighter.setTheme(config.theme);

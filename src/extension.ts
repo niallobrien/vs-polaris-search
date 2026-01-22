@@ -28,10 +28,18 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
+  const changePreviewThemeCommand = vscode.commands.registerCommand(
+    "polaris-search.changePreviewTheme",
+    () => {
+      PolarisPanel.showThemePicker();
+    },
+  );
+
   context.subscriptions.push(
     findFilesCommand,
     findInFilesCommand,
     findInOpenFilesCommand,
+    changePreviewThemeCommand,
   );
 }
 

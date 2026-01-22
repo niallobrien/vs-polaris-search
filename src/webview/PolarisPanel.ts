@@ -19,6 +19,48 @@ export class PolarisPanel {
   public static currentPanels: Map<string, PolarisPanel> = new Map();
   private static panelIdCounter = 0;
 
+  private static readonly THEME_OPTIONS = [
+    { value: "system", label: "Auto-detect from VS Code theme" },
+    { value: "dark-plus", label: "VS Code Dark+" },
+    { value: "light-plus", label: "VS Code Light+" },
+    { value: "tokyo-night", label: "Tokyo Night" },
+    { value: "dracula", label: "Dracula" },
+    { value: "github-dark", label: "GitHub Dark" },
+    { value: "github-light", label: "GitHub Light" },
+    { value: "nord", label: "Nord" },
+    { value: "one-dark-pro", label: "One Dark Pro" },
+    { value: "catppuccin-mocha", label: "Catppuccin Mocha (dark)" },
+    { value: "catppuccin-latte", label: "Catppuccin Latte (light)" },
+    { value: "solarized-dark", label: "Solarized Dark" },
+    { value: "solarized-light", label: "Solarized Light" },
+    { value: "rose-pine", label: "Rosé Pine" },
+    { value: "monokai", label: "Monokai" },
+  ];
+
+  public static async showThemePicker(): Promise<void> {
+    const config = vscode.workspace.getConfiguration("polaris-search");
+    const currentTheme = config.get<string>("theme", "system");
+
+    const items = PolarisPanel.THEME_OPTIONS.map((theme) => ({
+      label: theme.value === currentTheme ? `✓ ${theme.label}` : theme.label,
+      value: theme.value,
+      picked: theme.value === currentTheme,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: "Select preview theme",
+      matchOnDescription: true,
+    });
+
+    if (selected) {
+      await config.update(
+        "theme",
+        selected.value,
+        vscode.ConfigurationTarget.Global,
+      );
+    }
+  }
+
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private readonly context: vscode.ExtensionContext;
@@ -154,8 +196,8 @@ export class PolarisPanel {
   private async handleMessage(message: WebviewMessage): Promise<void> {
     switch (message.type) {
       case "ready":
-        this.postMessage({ type: "setUIState", state: this.uiState });
         this.postMessage({ type: "setConfig", config: getConfig() });
+        this.postMessage({ type: "setUIState", state: this.uiState });
         break;
       case "queryChanged":
         this.handleQueryChanged(
