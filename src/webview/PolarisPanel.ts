@@ -144,7 +144,7 @@ export class PolarisPanel {
       mode: this.mode,
       busy: false,
       matchCase: savedPrefs?.matchCase ?? false,
-      matchWholeWord: savedPrefs?.matchWholeWord ?? false,
+      matchWholeWord: savedPrefs?.matchWholeWord ?? true,
       useRegex: savedPrefs?.useRegex ?? false,
       liveSearch: savedPrefs?.liveSearch ?? true,
       showReplace: false,
