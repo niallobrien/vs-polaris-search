@@ -1,9 +1,9 @@
 {
-  "name": "vscode-polaris",
+  "name": "polaris-search",
   "displayName": "Polaris Search",
   "description": "Fast, beautiful search and replace for VS Code",
   "version": "0.1.0",
-  "publisher": "polaris",
+  "publisher": "niallobrien",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -17,13 +17,13 @@
     "ripgrep",
     "fuzzy"
   ],
+  "main": "./dist/extension.js",
+  "icon": "media/polaris-icon.png",
   "activationEvents": [
     "onCommand:polaris.findInFiles",
     "onCommand:polaris.findFiles",
     "onCommand:polaris.findInOpenFiles"
   ],
-  "main": "./dist/extension.js",
-  "icon": "media/polaris-icon.png",
   "contributes": {
     "commands": [
       {
@@ -141,8 +141,18 @@
     "compile": "tsc -noEmit",
     "compile:webview": "tsc -p tsconfig.webview.json -noEmit",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niallobrien/vs-polaris-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/niallobrien/vs-polaris-search/issues"
+  },
+  "homepage": "https://github.com/niallobrien/vs-polaris-search#readme",
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
@@ -150,7 +160,8 @@
     "@typescript-eslint/parser": "^6.0.0",
     "esbuild": "^0.19.0",
     "eslint": "^8.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^3.0.0"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.44",

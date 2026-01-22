@@ -217,7 +217,7 @@ dracula, solarized-dark, solarized-light
 ## Project Structure
 
 ```
-vscode-polaris/
+polaris-search/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.webview.json
