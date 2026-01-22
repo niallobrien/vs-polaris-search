@@ -1,11 +1,17 @@
-import { SearchInput } from './SearchInput';
-import { SearchOptions } from './SearchOptions';
-import { ReplaceInput } from './ReplaceInput';
-import { ResultsList } from './ResultsList';
-import { PreviewPane } from './PreviewPane';
-import { FileResultDTO, PreviewDTO, ConfigDTO, UIStateDTO, SearchResultDTO } from '../../src/core/types';
-import { vscode } from '../services/vscode';
-import { highlighter } from '../services/highlighter';
+import { SearchInput } from "./SearchInput";
+import { SearchOptions } from "./SearchOptions";
+import { ReplaceInput } from "./ReplaceInput";
+import { ResultsList } from "./ResultsList";
+import { PreviewPane } from "./PreviewPane";
+import {
+  FileResultDTO,
+  PreviewDTO,
+  ConfigDTO,
+  UIStateDTO,
+  SearchResultDTO,
+} from "../../src/core/types";
+import { vscode } from "../services/vscode";
+import { highlighter } from "../services/highlighter";
 
 export class App {
   private container: HTMLElement | null = null;
@@ -38,7 +44,7 @@ export class App {
     this.hasSearched = true;
     this.resultsList.setResults(results);
     this.updateResultSummary(`${results.length} files`);
-    
+
     if (results.length === 0) {
       this.previewPane.clear();
     }
@@ -47,9 +53,9 @@ export class App {
   setSearchResults(results: SearchResultDTO[], totalCount: number): void {
     this.hasSearched = true;
     this.resultsList.setSearchResults(results);
-    const fileCount = new Set(results.map(r => r.path)).size;
+    const fileCount = new Set(results.map((r) => r.path)).size;
     this.updateResultSummary(`${totalCount} matches in ${fileCount}+ files`);
-    
+
     if (results.length === 0) {
       this.previewPane.clear();
     }
@@ -62,26 +68,26 @@ export class App {
 
   async setConfig(config: ConfigDTO): Promise<void> {
     this.searchInput.setDebounceDelay(config.liveSearchDelay);
-    
+
     this.previewPane.setConfig(config);
-    
+
     const previousTheme = highlighter.getTheme();
-    
+
     try {
       await highlighter.setTheme(config.theme);
-      
+
       if (previousTheme !== config.theme && this.currentPreviewData) {
         await this.previewPane.setPreview(this.currentPreviewData);
       }
     } catch (error) {
-      console.error('Failed to apply theme:', config.theme, error);
+      console.error("Failed to apply theme:", config.theme, error);
     }
   }
 
   setBusy(busy: boolean): void {
     if (busy) {
       this.hasSearched = true;
-      this.updateResultSummary('Searching...');
+      this.updateResultSummary("Searching...");
     }
   }
 
@@ -91,7 +97,7 @@ export class App {
 
   setUIState(state: UIStateDTO): void {
     this.uiState = state;
-    
+
     this.searchInput.setMode(state.mode);
     this.resultsList.setSearchMode(state.mode);
     this.searchOptions.setState({
@@ -102,32 +108,36 @@ export class App {
       mode: state.mode,
       showReplace: state.showReplace,
     });
-    
+
     this.searchInput.setLiveSearch(state.liveSearch);
-    
-    this.replaceInput.setVisible(state.showReplace && state.mode !== 'findFiles');
-    
+
+    this.replaceInput.setVisible(
+      state.showReplace && state.mode !== "findFiles",
+    );
+
     this.updateResultsDisplay(state.mode);
-    
+
     this.previewPane.clear();
-    
+
     this.hasSearched = false;
-    this.updateResultSummary('');
+    this.updateResultSummary("");
   }
 
-  private updateResultsDisplay(mode: 'findFiles' | 'findInFiles' | 'findInOpenFiles'): void {
-    const resultsContainer = document.getElementById('results-list');
+  private updateResultsDisplay(
+    mode: "findFiles" | "findInFiles" | "findInOpenFiles",
+  ): void {
+    const resultsContainer = document.getElementById("results-list");
     if (!resultsContainer) return;
 
-    resultsContainer.innerHTML = '';
+    resultsContainer.innerHTML = "";
     this.resultsList.mount(resultsContainer);
   }
 
   private updateResultSummary(text: string): void {
-    const summaryEl = document.getElementById('result-summary');
+    const summaryEl = document.getElementById("result-summary");
     if (summaryEl) {
-      if (!this.hasSearched && text !== 'Searching...') {
-        summaryEl.textContent = '';
+      if (!this.hasSearched && text !== "Searching...") {
+        summaryEl.textContent = "";
       } else {
         summaryEl.textContent = text;
       }
@@ -154,25 +164,26 @@ export class App {
       </div>
     `;
 
-    const searchInputEl = this.container.querySelector('#search-input');
-    const searchOptionsEl = this.container.querySelector('#search-options');
-    const replaceInputEl = this.container.querySelector('#replace-input');
-    const resultsListEl = this.container.querySelector('#results-list');
-    const previewPaneEl = this.container.querySelector('#preview-pane');
+    const searchInputEl = this.container.querySelector("#search-input");
+    const searchOptionsEl = this.container.querySelector("#search-options");
+    const replaceInputEl = this.container.querySelector("#replace-input");
+    const resultsListEl = this.container.querySelector("#results-list");
+    const previewPaneEl = this.container.querySelector("#preview-pane");
 
     if (searchInputEl) {
       this.searchInput.mount(searchInputEl as HTMLElement);
       this.searchInput.setExtraParamsProvider(() => ({
         includeGlobs: this.currentIncludeGlobs,
-        excludeGlobs: this.currentExcludeGlobs
+        excludeGlobs: this.currentExcludeGlobs,
       }));
     }
-    if (searchOptionsEl) this.searchOptions.mount(searchOptionsEl as HTMLElement);
+    if (searchOptionsEl)
+      this.searchOptions.mount(searchOptionsEl as HTMLElement);
     if (replaceInputEl) {
       this.replaceInput.mount(replaceInputEl as HTMLElement);
       this.replaceInput.setCallbacks({
         onReplace: () => this.handleReplaceOne(),
-        onReplaceAll: () => this.handleReplaceAll()
+        onReplaceAll: () => this.handleReplaceAll(),
       });
     }
     if (resultsListEl) this.resultsList.mount(resultsListEl as HTMLElement);
@@ -202,8 +213,8 @@ export class App {
       },
     });
 
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         if (!document.hasFocus()) {
           return;
         }
@@ -212,13 +223,13 @@ export class App {
         this.searchInput.focus();
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 'm') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
         e.preventDefault();
         e.stopPropagation();
         this.toggleMode();
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'h') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "h") {
         e.preventDefault();
         e.stopPropagation();
         this.toggleReplace();
@@ -228,48 +239,47 @@ export class App {
 
   private toggleMode(): void {
     if (!this.uiState) return;
-    let newMode: 'findFiles' | 'findInFiles' | 'findInOpenFiles';
-    if (this.uiState.mode === 'findInFiles') {
-      newMode = 'findInOpenFiles';
-    } else if (this.uiState.mode === 'findInOpenFiles') {
-      newMode = 'findFiles';
+    let newMode: "findFiles" | "findInFiles" | "findInOpenFiles";
+    if (this.uiState.mode === "findInFiles") {
+      newMode = "findInOpenFiles";
+    } else if (this.uiState.mode === "findInOpenFiles") {
+      newMode = "findFiles";
     } else {
-      newMode = 'findInFiles';
+      newMode = "findInFiles";
     }
-    vscode.postMessage({ type: 'modeChanged', mode: newMode });
+    vscode.postMessage({ type: "modeChanged", mode: newMode });
   }
 
   private toggleReplace(): void {
-    vscode.postMessage({ type: 'toggleReplace' });
+    vscode.postMessage({ type: "toggleReplace" });
   }
 
   private handleReplaceOne(): void {
-    if (!this.uiState || this.uiState.mode === 'findFiles') return;
-    
+    if (!this.uiState || this.uiState.mode === "findFiles") return;
+
     const selected = this.resultsList.getSelectedResult();
     if (!selected) return;
 
     const replaceText = this.replaceInput.getValue();
-    
+
     vscode.postMessage({
-      type: 'replaceOne',
+      type: "replaceOne",
       path: selected.path,
       line: selected.line,
       column: selected.column,
       matchLength: selected.matchText.length,
-      replaceText
+      replaceText,
     });
   }
 
   private handleReplaceAll(): void {
-    if (!this.uiState || this.uiState.mode === 'findFiles') return;
-    
+    if (!this.uiState || this.uiState.mode === "findFiles") return;
+
     const replaceText = this.replaceInput.getValue();
-    
+
     vscode.postMessage({
-      type: 'replaceAll',
-      replaceText
+      type: "replaceAll",
+      replaceText,
     });
   }
 }
-

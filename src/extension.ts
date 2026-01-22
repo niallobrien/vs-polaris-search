@@ -1,34 +1,38 @@
-import * as vscode from 'vscode';
-import { PolarisPanel } from './webview/PolarisPanel';
+import * as vscode from "vscode";
+import { PolarisPanel } from "./webview/PolarisPanel";
 
-const TOGGLE_PREFS_KEY = 'polaris-search.togglePreferences';
+const TOGGLE_PREFS_KEY = "polaris-search.togglePreferences";
 
 export function activate(context: vscode.ExtensionContext): void {
   // Enable Settings Sync for toggle preferences
   context.globalState.setKeysForSync([TOGGLE_PREFS_KEY]);
 
   const findFilesCommand = vscode.commands.registerCommand(
-    'polaris-search.findFiles',
+    "polaris-search.findFiles",
     () => {
-      PolarisPanel.createOrShow(context, 'findFiles');
-    }
+      PolarisPanel.createOrShow(context, "findFiles");
+    },
   );
 
   const findInFilesCommand = vscode.commands.registerCommand(
-    'polaris-search.findInFiles',
+    "polaris-search.findInFiles",
     () => {
-      PolarisPanel.createOrShow(context, 'findInFiles');
-    }
+      PolarisPanel.createOrShow(context, "findInFiles");
+    },
   );
 
   const findInOpenFilesCommand = vscode.commands.registerCommand(
-    'polaris-search.findInOpenFiles',
+    "polaris-search.findInOpenFiles",
     () => {
-      PolarisPanel.createOrShow(context, 'findInOpenFiles');
-    }
+      PolarisPanel.createOrShow(context, "findInOpenFiles");
+    },
   );
 
-  context.subscriptions.push(findFilesCommand, findInFilesCommand, findInOpenFilesCommand);
+  context.subscriptions.push(
+    findFilesCommand,
+    findInFilesCommand,
+    findInOpenFilesCommand,
+  );
 }
 
 export function deactivate(): void {}

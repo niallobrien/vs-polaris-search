@@ -1,26 +1,46 @@
-# Polaris: Search
+# Polaris Search
 
 Fast, beautiful search and replace for VS Code.
 
 ## Features
 
-- **Fast File Finding** - Fuzzy search through your workspace files
-- **Content Search** - Search inside files with ripgrep speed
-- **Beautiful Syntax Highlighting** - Preview results with Shiki, powered by OpenCode themes
-- **Replace Support** - Replace text with preserve-case logic
-- **Modern UI** - Clean, responsive interface in a webview panel
+✨ **Fuzzy File Finding** - Quickly locate files in your workspace with intelligent fuzzy matching
 
-## Keybindings
+🔍 **Powerful Content Search** - Search inside files with blazing-fast ripgrep
 
-| Action | Mac | Windows/Linux |
-|--------|-----|---------------|
-| Find Files | `Cmd+Shift+T` | `Ctrl+Shift+T` |
-| Find in Files | `Cmd+Shift+G` | `Ctrl+Shift+G` |
-| Toggle Replace | `Cmd+Shift+H` | `Ctrl+Shift+H` |
+🎨 **Beautiful Syntax Highlighting** - Preview results with stunning Shiki-powered syntax highlighting (15+ themes)
+
+🔄 **Smart Replace** - Replace text across files with preserve-case logic
+
+📂 **Find in Open Files** - Search only in currently open editor tabs
+
+⚡ **Live Search** - See results as you type with configurable debouncing
+
+💎 **Modern UI** - Clean, responsive interface with file icons and line numbers
+
+## Commands & Keybindings
+
+| Command            | Mac         | Windows/Linux |
+| ------------------ | ----------- | ------------- |
+| Find in Files      | `Cmd+Alt+P` | `Ctrl+Alt+P`  |
+| Find Files         | `Cmd+Alt+F` | `Ctrl+Alt+F`  |
+| Find in Open Files | `Cmd+Alt+O` | `Ctrl+Alt+O`  |
+
+Access all commands via the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and search for "Polaris Search".
+
+## Configuration
+
+Customize Polaris Search through VS Code settings:
+
+- **Theme**: Choose from 15+ syntax highlighting themes (Tokyo Night, Dracula, GitHub, Nord, One Dark Pro, Catppuccin, and more)
+- **Preview Lines**: Adjust context lines shown in preview (3-50 lines)
+- **Search Delay**: Configure debounce delay for live search (100-2000ms)
+- **Highlight**: Toggle search term highlighting in preview
+- **Line Numbers**: Show/hide line numbers in preview pane
 
 ## Installation
 
-Coming soon to the VS Code Marketplace.
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=niallobrien.polaris-search) or search for "Polaris Search" in VS Code's Extensions view.
 
 ## Development
 

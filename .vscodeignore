@@ -1,18 +1,37 @@
-.vscode-test
-.vscode
-node_modules
-!node_modules/@vscode/codicons
-!node_modules/file-icons-js
-out
-src
-webview/components
-webview/services
-webview/main.ts
-webview/state.ts
-webview/types.d.ts
+# Development files
+.vscode-test/**
+.vscode/**
+.history/**
+node_modules/**
+!node_modules/@vscode/codicons/**
+!node_modules/file-icons-js/**
+
+# Source files (only include dist)
+src/**
+webview/**
+out/**
+
+# Config files
 tsconfig.json
 tsconfig.webview.json
 esbuild.js
 .gitignore
 .eslintrc.json
+
+# Documentation (include only essential docs)
 *.md
+!README.md
+!CHANGELOG.md
+!LICENSE
+
+# Project files
+.git/**
+.github/**
+AGENTS.md
+PLAN.md
+docs/**
+*.bak
+
+# Build artifacts
+**/*.map
+**/*.ts.map

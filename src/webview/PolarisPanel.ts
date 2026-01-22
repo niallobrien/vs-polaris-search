@@ -842,7 +842,7 @@ export class PolarisPanel {
   </style>
   <link rel="stylesheet" href="${baseCssUri}">
   <link rel="stylesheet" href="${componentsCssUri}">
-  <title>Polaris: Search</title>
+  <title>Polaris - Search</title>
 </head>
 <body>
   <div id="app"></div>

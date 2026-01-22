@@ -1,9 +1,10 @@
 {
   "name": "polaris-search",
-  "displayName": "Polaris: Search",
-  "description": "Fast, beautiful search and replace for VS Code",
+  "displayName": "Polaris Search",
+  "description": "Fast, beautiful search and replace for VS Code. Fuzzy file finding, ripgrep-powered content search, syntax-highlighted previews.",
   "version": "0.1.0",
   "publisher": "niallobrien",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -15,8 +16,15 @@
     "find",
     "replace",
     "ripgrep",
-    "fuzzy"
+    "fuzzy",
+    "file finder",
+    "grep",
+    "syntax highlighting"
   ],
+  "galleryBanner": {
+    "color": "#1a1b26",
+    "theme": "dark"
+  },
   "main": "./dist/extension.js",
   "icon": "media/polaris-icon.png",
   "activationEvents": [
@@ -29,17 +37,17 @@
       {
         "command": "polaris-search.findInFiles",
         "title": "Find in Files",
-        "category": "Polaris: Search"
+        "category": "Polaris Search"
       },
       {
         "command": "polaris-search.findFiles",
         "title": "Find Files",
-        "category": "Polaris: Search"
+        "category": "Polaris Search"
       },
       {
         "command": "polaris-search.findInOpenFiles",
         "title": "Find in Open Files",
-        "category": "Polaris: Search"
+        "category": "Polaris Search"
       }
     ],
     "keybindings": [
@@ -66,7 +74,7 @@
       }
     ],
     "configuration": {
-      "title": "Polaris: Search",
+      "title": "Polaris Search",
       "properties": {
         "polaris-search.theme": {
           "type": "string",
@@ -153,6 +161,9 @@
     "url": "https://github.com/niallobrien/vs-polaris-search/issues"
   },
   "homepage": "https://github.com/niallobrien/vs-polaris-search#readme",
+  "author": {
+    "name": "Niall O'Brien"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
