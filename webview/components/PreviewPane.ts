@@ -64,8 +64,19 @@ export class PreviewPane {
       adjustedHighlightLine
     );
 
-    if (this.config?.previewHighlightSearchTerm && searchTerm && highlightLine !== undefined && adjustedHighlightLine !== undefined) {
+    console.log('[PreviewPane] Highlight conditions:', {
+      previewHighlightSearchTerm: this.config?.previewHighlightSearchTerm,
+      searchTerm,
+      highlightLine,
+      adjustedHighlightLine,
+      searchOptions
+    });
+
+    if (this.config?.previewHighlightSearchTerm && searchTerm && adjustedHighlightLine !== undefined) {
+      console.log('[PreviewPane] Calling highlightSearchTerm');
       highlighted = this.highlightSearchTerm(highlighted, searchTerm, searchOptions, adjustedHighlightLine);
+    } else {
+      console.log('[PreviewPane] Skipping highlightSearchTerm');
     }
 
     const fileName = path.split('/').pop() || path;
@@ -118,27 +129,118 @@ export class PreviewPane {
     html: string,
     searchTerm: string,
     searchOptions: { matchCase: boolean; useRegex: boolean; matchWholeWord: boolean } | undefined,
-    targetLineIndex: number
+    targetLineNumber: number
   ): string {
     if (!searchTerm.trim()) {
       return html;
     }
 
-    const lines = html.split('\n');
-    if (targetLineIndex < 0 || targetLineIndex >= lines.length) {
-      return html;
-    }
-
     try {
       const regex = this.buildSearchRegex(searchTerm, searchOptions);
-      const targetLine = lines[targetLineIndex];
-      const highlightedLine = this.highlightLineWithRegex(targetLine, regex);
-      lines[targetLineIndex] = highlightedLine;
-      return lines.join('\n');
+      console.log('[PreviewPane] Finding closest match to line:', targetLineNumber);
+      
+      // Create a temporary container to parse the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // Find all matches with their line numbers
+      const matches = this.findAllMatches(tempDiv, regex);
+      console.log('[PreviewPane] Found matches:', matches.length);
+      
+      if (matches.length === 0) {
+        return html;
+      }
+      
+      // Find the match closest to the target line
+      let closestMatch = matches[0];
+      let minDistance = Math.abs(matches[0].lineNumber - targetLineNumber);
+      
+      for (const match of matches) {
+        const distance = Math.abs(match.lineNumber - targetLineNumber);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestMatch = match;
+        }
+      }
+      
+      console.log('[PreviewPane] Closest match at line:', closestMatch.lineNumber, 'distance:', minDistance);
+      
+      // Highlight only the closest match
+      this.highlightSingleMatch(closestMatch);
+      
+      const result = tempDiv.innerHTML;
+      console.log('[PreviewPane] Highlighted HTML contains mark tags?', result.includes('<mark'));
+      return result;
     } catch (error) {
       console.error('Error highlighting search term:', error);
       return html;
     }
+  }
+
+  private findAllMatches(container: HTMLElement, regex: RegExp): Array<{node: Text, match: RegExpExecArray, lineNumber: number}> {
+    const matches: Array<{node: Text, match: RegExpExecArray, lineNumber: number}> = [];
+    
+    const findInNode = (node: Node, currentLine: number): number => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || '';
+        regex.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        
+        while ((match = regex.exec(text)) !== null) {
+          matches.push({
+            node: node as Text,
+            match: match,
+            lineNumber: currentLine
+          });
+        }
+        return currentLine;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        
+        // Count line breaks
+        if (element.classList.contains('line')) {
+          currentLine++;
+        }
+        
+        // Skip already highlighted marks
+        if (element.tagName.toLowerCase() === 'mark') {
+          return currentLine;
+        }
+        
+        for (const child of Array.from(node.childNodes)) {
+          currentLine = findInNode(child, currentLine);
+        }
+      }
+      return currentLine;
+    };
+    
+    findInNode(container, 0);
+    return matches;
+  }
+
+  private highlightSingleMatch(matchInfo: {node: Text, match: RegExpExecArray, lineNumber: number}): void {
+    const {node, match} = matchInfo;
+    const text = node.textContent || '';
+    const fragment = document.createDocumentFragment();
+    
+    // Add text before match
+    if (match.index > 0) {
+      fragment.appendChild(document.createTextNode(text.substring(0, match.index)));
+    }
+    
+    // Add highlighted match
+    const mark = document.createElement('mark');
+    mark.className = 'search-match';
+    mark.textContent = match[0];
+    fragment.appendChild(mark);
+    
+    // Add text after match
+    const afterIndex = match.index + match[0].length;
+    if (afterIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.substring(afterIndex)));
+    }
+    
+    node.parentNode?.replaceChild(fragment, node);
   }
 
   private buildSearchRegex(

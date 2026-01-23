@@ -384,6 +384,15 @@
   border-radius: 2px;
 }
 
+/* Preview pane specific styling for search matches */
+.preview-content .search-match {
+  border: 1px solid var(--vscode-editor-findMatchBorder, var(--vscode-editorOverviewRuler-findMatchForeground, rgba(255, 255, 255, 0.4)));
+  background: var(--vscode-editor-findMatchHighlightBackground);
+  color: var(--vscode-editor-findMatchHighlightForeground, inherit);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 .search-details {
   margin-bottom: 12px;
   padding: 12px;
