@@ -2,7 +2,7 @@
   "name": "polaris-search",
   "displayName": "Polaris Search",
   "description": "Fast, beautiful search and replace for VS Code. Fuzzy file finding, ripgrep-powered content search, syntax-highlighted previews.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "niallobrien",
   "license": "MIT",
   "engines": {
