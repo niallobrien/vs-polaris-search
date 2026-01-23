@@ -1,4 +1,4 @@
-export type SearchMode = 'findFiles' | 'findInFiles' | 'findInOpenFiles';
+export type SearchMode = "findFiles" | "findInFiles" | "findInOpenFiles";
 
 export interface FileResultDTO {
   path: string;
@@ -50,6 +50,7 @@ export interface UIStateDTO {
 
 export interface ConfigDTO {
   theme: string;
+  themeKind: "light" | "dark";
   previewLines: number;
   liveSearchDelay: number;
   previewHighlightSearchTerm: boolean;

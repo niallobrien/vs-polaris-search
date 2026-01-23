@@ -26,6 +26,7 @@ export class App {
   private currentExcludeGlobs: string[] = [];
   private hasSearched: boolean = false;
   private currentPreviewData: PreviewDTO | null = null;
+  private themeKind: "light" | "dark" = "dark";
 
   constructor() {
     this.searchInput = new SearchInput();
@@ -67,9 +68,15 @@ export class App {
   }
 
   async setConfig(config: ConfigDTO): Promise<void> {
-    console.log("[Polaris Webview] setConfig called with theme:", config.theme);
+    console.log(
+      "[Polaris Webview] setConfig called with theme:",
+      config.theme,
+      "themeKind:",
+      config.themeKind,
+    );
     this.searchInput.setDebounceDelay(config.liveSearchDelay);
 
+    this.themeKind = config.themeKind;
     this.previewPane.setConfig(config);
 
     const previousTheme = highlighter.getTheme();
@@ -82,6 +89,22 @@ export class App {
 
     try {
       await highlighter.setTheme(config.theme);
+
+      // Apply theme's background color to the preview pane container
+      const previewPaneContainer = document.getElementById("preview-pane");
+      if (previewPaneContainer) {
+        const bgColor = highlighter.getThemeBackgroundColor();
+        if (bgColor) {
+          previewPaneContainer.style.backgroundColor = bgColor;
+          console.log("[Polaris Webview] Applied background color:", bgColor);
+        } else {
+          // Fallback to VS Code editor background color
+          previewPaneContainer.style.backgroundColor = "";
+          console.log(
+            "[Polaris Webview] Using VS Code editor background color",
+          );
+        }
+      }
 
       if (previousTheme !== config.theme && this.currentPreviewData) {
         await this.previewPane.setPreview(this.currentPreviewData);

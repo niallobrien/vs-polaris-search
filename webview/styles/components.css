@@ -256,7 +256,6 @@
 .preview-header {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
-  background: var(--vscode-editor-background);
 }
 
 .preview-filename {
@@ -275,7 +274,6 @@
   overflow: auto;
   flex: 1;
   min-height: 0;
-  background: var(--vscode-editor-background);
 }
 
 .preview-content pre {
@@ -289,11 +287,16 @@
   font-family: inherit;
 }
 
-/* Remove Shiki background colors - show only pane's background */
+/* Allow Shiki theme background colors to show through */
 .preview-content pre,
 .preview-content code,
 .preview-content span {
   background: transparent !important;
+}
+
+/* But allow the preview pane container to use Shiki's background color */
+.polaris-search-preview .preview-content pre {
+  background: inherit !important;
 }
 
 .results-placeholder,

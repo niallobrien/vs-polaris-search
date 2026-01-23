@@ -72,17 +72,39 @@ export function getConfig(): ConfigDTO {
   const resolvedTheme =
     themeSetting === "system" ? resolveSystemTheme() : themeSetting;
 
+  // List of known light themes
+  const LIGHT_THEMES = [
+    "light-plus",
+    "github-light",
+    "catppuccin-latte",
+    "solarized-light",
+  ];
+
+  // Determine if the theme is light or dark
+  let themeKind: "light" | "dark" = "dark";
+  const activeTheme = vscode.window.activeColorTheme.kind;
+
+  if (themeSetting === "system") {
+    themeKind = activeTheme === vscode.ColorThemeKind.Light ? "light" : "dark";
+  } else {
+    // Check if the resolved theme is in the list of known light themes
+    themeKind = LIGHT_THEMES.includes(resolvedTheme) ? "light" : "dark";
+  }
+
   console.log(
     "[Polaris] getConfig - themeSetting:",
     themeSetting,
     "resolvedTheme:",
     resolvedTheme,
+    "themeKind:",
+    themeKind,
     "VS Code theme kind:",
     vscode.window.activeColorTheme.kind,
   );
 
   return {
     theme: resolvedTheme,
+    themeKind,
     previewLines: config.get<number>("previewLines", 10),
     liveSearchDelay: config.get<number>("liveSearchDelay", 300),
     previewHighlightSearchTerm: config.get<boolean>(

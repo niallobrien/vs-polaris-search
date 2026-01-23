@@ -36,6 +36,7 @@ class Highlighter {
   private initPromise: Promise<void> | null = null;
   private currentTheme: BundledTheme | null = null;
   private loadedThemes: Set<string> = new Set();
+  private themeBackgroundColors: Map<string, string> = new Map();
 
   async initialize(): Promise<void> {
     if (this.initPromise) {
@@ -82,10 +83,36 @@ class Highlighter {
         return;
       }
     }
+
+    // Extract and store the background color from the theme
+    if (this.shiki) {
+      try {
+        const shikiTheme = this.shiki.getTheme(themeId);
+        const bgColor = shikiTheme.bg || shikiTheme.settings?.background;
+        if (bgColor) {
+          this.themeBackgroundColors.set(theme, bgColor);
+          console.log(
+            "[Polaris Highlighter] Background color for theme",
+            theme,
+            ":",
+            bgColor,
+          );
+        }
+      } catch (error) {
+        console.error("Failed to extract background color from theme:", error);
+      }
+    }
   }
 
   getTheme(): string {
     return this.currentTheme || "dark-plus";
+  }
+
+  getThemeBackgroundColor(): string | undefined {
+    if (this.currentTheme) {
+      return this.themeBackgroundColors.get(this.currentTheme);
+    }
+    return undefined;
   }
 
   async highlight(
