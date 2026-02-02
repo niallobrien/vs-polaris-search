@@ -33,58 +33,10 @@ export class PreviewPane {
   }
 
   private async render(): Promise<void> {
-<<<<<<< ours
-    if (!this.container) {
-      return;
-    }
-
-    if (!this.currentPreview) {
-      this.container.innerHTML = `
-        <div class="preview-pane">
-          <div class="preview-placeholder">Select a result to preview</div>
-        </div>
-      `;
-      return;
-    }
-
-    const {
-      content,
-      language,
-      highlightLine,
-      path,
-      searchTerm,
-      searchOptions,
-    } = this.currentPreview;
-
-    const lines = content.split("\n");
-    const isLargeFile = lines.length > 1000;
-    const maxPreviewLines = 400;
-
-    let contentToShow = content;
-    let lineOffset = 0;
-    let adjustedHighlightLine: number | undefined = highlightLine;
-
-    if (isLargeFile) {
-      if (highlightLine !== undefined) {
-        const contextLines = 200;
-        const startLine = Math.max(0, highlightLine - contextLines);
-        const endLine = Math.min(lines.length, highlightLine + contextLines);
-
-        contentToShow = lines.slice(startLine, endLine).join("\n");
-        lineOffset = startLine;
-        adjustedHighlightLine = highlightLine - lineOffset;
-      } else {
-        contentToShow = lines.slice(0, maxPreviewLines).join("\n");
-        lineOffset = 0;
-        adjustedHighlightLine = undefined;
-      }
-    }
-=======
     await this.runGuardedAsync("render", async () => {
       if (!this.container) {
         return;
       }
->>>>>>> theirs
 
       if (!this.currentPreview) {
         this.container.innerHTML = `
@@ -106,19 +58,26 @@ export class PreviewPane {
 
       const lines = content.split("\n");
       const isLargeFile = lines.length > 1000;
+      const maxPreviewLines = 400;
 
       let contentToShow = content;
       let lineOffset = 0;
       let adjustedHighlightLine: number | undefined = highlightLine;
 
-      if (isLargeFile && highlightLine !== undefined) {
-        const contextLines = 200;
-        const startLine = Math.max(0, highlightLine - contextLines);
-        const endLine = Math.min(lines.length, highlightLine + contextLines);
+      if (isLargeFile) {
+        if (highlightLine !== undefined) {
+          const contextLines = 200;
+          const startLine = Math.max(0, highlightLine - contextLines);
+          const endLine = Math.min(lines.length, highlightLine + contextLines);
 
-        contentToShow = lines.slice(startLine, endLine).join("\n");
-        lineOffset = startLine;
-        adjustedHighlightLine = highlightLine - lineOffset;
+          contentToShow = lines.slice(startLine, endLine).join("\n");
+          lineOffset = startLine;
+          adjustedHighlightLine = highlightLine - lineOffset;
+        } else {
+          contentToShow = lines.slice(0, maxPreviewLines).join("\n");
+          lineOffset = 0;
+          adjustedHighlightLine = undefined;
+        }
       }
 
       let highlighted = await highlighter.highlight(
