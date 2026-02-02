@@ -1,5 +1,4 @@
-import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
+import { fork } from 'child_process';
 import * as path from 'path';
 import { SearchResultDTO } from '../core/types';
 
@@ -12,6 +11,8 @@ export interface ContentSearchOptions {
   includeGlobs?: string[];
   excludeGlobs?: string[];
   filePaths?: string[];
+  signal?: AbortSignal;
+  maxResults?: number;
 }
 
 export async function findInFiles(options: ContentSearchOptions): Promise<SearchResultDTO[]> {
@@ -24,148 +25,86 @@ export async function findInFiles(options: ContentSearchOptions): Promise<Search
     includeGlobs = [],
     excludeGlobs = [],
     filePaths = [],
+    signal,
+    maxResults = 2000,
   } = options;
 
   if (!query.trim()) {
     return [];
   }
 
-  const args = [
-    '--json',
-    '--line-number',
-    '--column',
-    '--no-heading',
-    '--with-filename',
-  ];
-
-  if (!matchCase) {
-    args.push('--ignore-case');
-  }
-
-  if (matchWholeWord) {
-    args.push('--word-regexp');
-  }
-
-  if (!useRegex) {
-    args.push('--fixed-strings');
-  }
-
-  args.push('--hidden');
-  args.push('--glob', '!.git/');
-  args.push('--glob', '!node_modules/');
-  args.push('--glob', '!dist/');
-  args.push('--glob', '!out/');
-  args.push('--glob', '!build/');
-
-  // Enable multi-line matching if query contains newlines
-  if (query.includes('\n')) {
-    args.push('--multiline');
-    if (useRegex) {
-      args.push('--multiline-dotall');
-    }
-  }
-
-  // If filePaths is provided, search only in those files
-  if (filePaths.length > 0) {
-    for (const glob of excludeGlobs) {
-      if (glob.trim()) {
-        args.push('--glob', `!${glob}`);
-      }
-    }
-
-    args.push('--');
-    args.push(query);
-    
-    // Add absolute paths for each file
-    for (const filePath of filePaths) {
-      args.push(path.join(workspaceRoot, filePath));
-    }
-  } else {
-    // Original behavior: use globs and search in workspace root
-    for (const glob of excludeGlobs) {
-      if (glob.trim()) {
-        args.push('--glob', `!${glob}`);
-      }
-    }
-
-    for (const glob of includeGlobs) {
-      if (glob.trim()) {
-        args.push('--glob', glob);
-      }
-    }
-
-    args.push('--');
-    args.push(query);
-    args.push(workspaceRoot);
+  if (signal?.aborted) {
+    return [];
   }
 
   return new Promise((resolve, reject) => {
-    const results: SearchResultDTO[] = [];
-    const rgProcess = spawn('rg', args);
+    const workerPath = path.join(__dirname, 'rgWorker.js');
+    const worker = fork(workerPath, [], { stdio: ['pipe', 'pipe', 'pipe', 'ipc'] });
+    let settled = false;
 
-    let stdout = '';
-    let stderr = '';
-
-    rgProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    rgProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    rgProcess.on('close', async (code) => {
-      if (code !== 0 && code !== 1) {
-        reject(new Error(`rg exited with code ${code}: ${stderr}`));
-        return;
+    const finalize = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
       }
+      worker.removeAllListeners();
+      fn();
+    };
 
-      const lines = stdout.trim().split('\n').filter(line => line.length > 0);
-      
-      for (const line of lines) {
+    const onAbort = () => {
+      worker.send({ type: 'cancel' });
+      setTimeout(() => {
         try {
-          const result = JSON.parse(line);
-          
-          if (result.type === 'match') {
-            const relativePath = result.data.path.text.replace(workspaceRoot, '').replace(/^\//, '');
-            const absolutePath = path.join(workspaceRoot, relativePath);
-            const lineNumber = result.data.line_number;
-            const lineText = result.data.lines.text;
+          worker.kill();
+        } catch {
+          // Ignore kill errors during abort.
+        }
+      }, 2000);
+      finalize(() => resolve([]));
+    };
 
-            const matches = result.data.submatches.map((submatch: any) => ({
-              line: lineNumber,
-              column: submatch.start,
-              matchText: lineText.substring(submatch.start, submatch.end),
-              beforeMatch: lineText.substring(0, submatch.start),
-              afterMatch: lineText.substring(submatch.end),
-            }));
+    if (signal) {
+      signal.addEventListener('abort', onAbort);
+    }
 
-            let mtime = Date.now();
-            try {
-              const stats = await fs.stat(absolutePath);
-              mtime = stats.mtimeMs;
-            } catch (e) {
-            }
+    worker.on('message', (message: any) => {
+      if (message?.type === 'results') {
+        finalize(() => resolve(message.results as SearchResultDTO[]));
+      } else if (message?.type === 'cancelled') {
+        finalize(() => resolve([]));
+      } else if (message?.type === 'error') {
+        finalize(() => reject(new Error(message.error)));
+      }
+    });
 
-            results.push({
-              path: relativePath,
-              line: lineNumber,
-              column: result.data.submatches[0]?.start || 0,
-              lineText: lineText.trimEnd(),
-              matches,
-              mtime,
-            });
-          }
-        } catch (e) {
-          continue;
+    worker.on('error', (err) => {
+      finalize(() => reject(new Error(`Worker error: ${err.message}`)));
+    });
+
+    worker.on('exit', (code) => {
+      if (!settled) {
+        if (code && code !== 0) {
+          finalize(() => reject(new Error(`Worker exited with code ${code}`)));
+        } else {
+          finalize(() => resolve([]));
         }
       }
-
-      resolve(results);
     });
 
-    rgProcess.on('error', (err) => {
-      reject(new Error(`Failed to spawn rg: ${err.message}`));
+    worker.send({
+      type: 'search',
+      options: {
+        query,
+        workspaceRoot,
+        matchCase,
+        matchWholeWord,
+        useRegex,
+        includeGlobs,
+        excludeGlobs,
+        filePaths,
+        maxResults,
+      },
     });
   });
 }

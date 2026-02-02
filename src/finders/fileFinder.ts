@@ -12,6 +12,7 @@ export interface FileSearchOptions {
   matchCase?: boolean;
   matchWholeWord?: boolean;
   useRegex?: boolean;
+  signal?: AbortSignal;
 }
 
 export async function findFiles(
@@ -19,28 +20,65 @@ export async function findFiles(
   workspaceRoot: string,
   options: FileSearchOptions = {}
 ): Promise<FileResultDTO[]> {
-  const { matchCase = false, matchWholeWord = false, useRegex = false } = options;
+  const {
+    matchCase = false,
+    matchWholeWord = false,
+    useRegex = false,
+    signal,
+  } = options;
 
   if (!query.trim()) {
     return [];
   }
 
+  if (signal?.aborted) {
+    return [];
+  }
+
   const allFiles = await getAllFiles(workspaceRoot);
+
+  if (signal?.aborted) {
+    return [];
+  }
   
   if (allFiles.length === 0) {
     return [];
   }
 
   if (useRegex) {
-    return filterByRegex(allFiles, query, matchCase);
+    return filterByRegex(allFiles, query, matchCase, signal);
   }
 
-  const results = fuzzysort.go(query, allFiles, {
-    threshold: -10000,
-    limit: 100,
-  });
+  const limit = 100;
+  const threshold = -10000;
+  const results: any[] = [];
 
-  let filtered = results.map(result => ({
+  for (let i = 0; i < allFiles.length; i++) {
+    if (signal?.aborted) {
+      return [];
+    }
+
+    const result = fuzzysort.single(query, allFiles[i]);
+    if (result && result.score >= threshold) {
+      results.push(result);
+    }
+
+    if (i > 0 && i % 2000 === 0) {
+      if (results.length > limit * 20) {
+        results.sort((a, b) => b.score - a.score);
+        results.length = limit * 10;
+      }
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+  }
+
+  if (signal?.aborted) {
+    return [];
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  let filtered = results.slice(0, limit).map(result => ({
     path: result.target,
     score: result.score,
     highlightedPath: highlightFuzzyResult(result)
@@ -83,22 +121,42 @@ async function getAllFiles(workspaceRoot: string): Promise<string[]> {
   return files;
 }
 
-function filterByRegex(files: string[], pattern: string, matchCase: boolean): FileResultDTO[] {
+async function filterByRegex(
+  files: string[],
+  pattern: string,
+  matchCase: boolean,
+  signal?: AbortSignal
+): Promise<FileResultDTO[]> {
   try {
     const flags = matchCase ? 'g' : 'gi';
     const regex = new RegExp(pattern, flags);
-    
-    return files
-      .filter(f => {
-        regex.lastIndex = 0;
-        return regex.test(f);
-      })
-      .slice(0, 100)
-      .map((path, index) => ({
-        path,
-        score: -index,
-        highlightedPath: highlightRegexMatches(path, pattern, matchCase)
-      }));
+
+    const matches: FileResultDTO[] = [];
+    for (let i = 0; i < files.length; i++) {
+      if (signal?.aborted) {
+        return [];
+      }
+
+      const filePath = files[i];
+      regex.lastIndex = 0;
+      if (regex.test(filePath)) {
+        matches.push({
+          path: filePath,
+          score: -i,
+          highlightedPath: highlightRegexMatches(filePath, pattern, matchCase),
+        });
+
+        if (matches.length >= 100) {
+          return matches;
+        }
+      }
+
+      if (i > 0 && i % 2000 === 0) {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+    }
+
+    return matches;
   } catch {
     return [];
   }

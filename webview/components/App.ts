@@ -27,6 +27,16 @@ export class App {
   private hasSearched: boolean = false;
   private currentPreviewData: PreviewDTO | null = null;
   private themeKind: "light" | "dark" = "dark";
+  private busyTimer: number | null = null;
+  private busyFrame = 0;
+  private readonly busyFrames = [
+    "Searching",
+    "Searching.",
+    "Searching..",
+    "Searching...",
+  ];
+  private isBusy = false;
+  private currentSearchId: number | null = null;
 
   constructor() {
     this.searchInput = new SearchInput();
@@ -114,11 +124,46 @@ export class App {
     }
   }
 
-  setBusy(busy: boolean): void {
+  setBusy(busy: boolean, searchId: number): void {
     if (busy) {
+      this.isBusy = true;
+      this.currentSearchId = searchId;
       this.hasSearched = true;
-      this.updateResultSummary("Searching...");
+      this.startBusyAnimation();
+      return;
     }
+
+    if (this.currentSearchId !== searchId) {
+      return;
+    }
+
+    this.isBusy = false;
+    this.stopBusyAnimation();
+    this.currentSearchId = null;
+  }
+
+  setSearchCancelled(searchId: number): void {
+    if (!this.isBusy || this.currentSearchId !== searchId) {
+      return;
+    }
+
+    this.isBusy = false;
+    this.hasSearched = true;
+    this.stopBusyAnimation();
+    this.updateResultSummary("Cancelled search");
+    this.currentSearchId = null;
+  }
+
+  setSearchTimedOut(searchId: number): void {
+    if (!this.isBusy || this.currentSearchId !== searchId) {
+      return;
+    }
+
+    this.isBusy = false;
+    this.hasSearched = true;
+    this.stopBusyAnimation();
+    this.updateResultSummary("Search timed out");
+    this.currentSearchId = null;
   }
 
   focusSearchInput(): void {
@@ -172,6 +217,30 @@ export class App {
         summaryEl.textContent = text;
       }
     }
+  }
+
+
+  private startBusyAnimation(): void {
+    if (this.busyTimer !== null) {
+      return;
+    }
+
+    this.busyFrame = 0;
+    this.updateResultSummary(this.busyFrames[this.busyFrame]);
+
+    this.busyTimer = window.setInterval(() => {
+      this.busyFrame = (this.busyFrame + 1) % this.busyFrames.length;
+      this.updateResultSummary(this.busyFrames[this.busyFrame]);
+    }, 450);
+  }
+
+  private stopBusyAnimation(): void {
+    if (this.busyTimer === null) {
+      return;
+    }
+
+    window.clearInterval(this.busyTimer);
+    this.busyTimer = null;
   }
 
   private render(): void {
@@ -241,6 +310,15 @@ export class App {
       onEnd: () => {
         this.resultsList.selectLast();
       },
+      onCancel: () => {
+        if (!this.isBusy) {
+          return;
+        }
+        if (this.currentSearchId !== null) {
+          this.setSearchCancelled(this.currentSearchId);
+        }
+        vscode.postMessage({ type: "cancelSearch" });
+      },
     });
 
     document.addEventListener("keydown", (e) => {
@@ -251,6 +329,18 @@ export class App {
         e.preventDefault();
         e.stopPropagation();
         this.searchInput.focus();
+      }
+
+      if (e.key === "Escape") {
+        if (!this.isBusy) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.currentSearchId !== null) {
+          this.setSearchCancelled(this.currentSearchId);
+        }
+        vscode.postMessage({ type: "cancelSearch" });
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === "m") {

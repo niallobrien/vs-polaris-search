@@ -35,22 +35,41 @@ const webviewConfig = {
   logLevel: 'info',
 };
 
+/**
+ * @type {esbuild.BuildOptions}
+ */
+const workerConfig = {
+  entryPoints: ['src/workers/rgWorker.ts'],
+  bundle: true,
+  outfile: 'dist/rgWorker.js',
+  external: ['vscode'],
+  format: 'cjs',
+  platform: 'node',
+  target: 'node16',
+  sourcemap: !production,
+  minify: production,
+  logLevel: 'info',
+};
+
 async function build() {
   try {
     if (watch) {
       const extensionContext = await esbuild.context(extensionConfig);
       const webviewContext = await esbuild.context(webviewConfig);
+      const workerContext = await esbuild.context(workerConfig);
       
       await Promise.all([
         extensionContext.watch(),
-        webviewContext.watch()
+        webviewContext.watch(),
+        workerContext.watch(),
       ]);
       
       console.log('Watching for changes...');
     } else {
       await Promise.all([
         esbuild.build(extensionConfig),
-        esbuild.build(webviewConfig)
+        esbuild.build(webviewConfig),
+        esbuild.build(workerConfig),
       ]);
       
       console.log('Build complete!');

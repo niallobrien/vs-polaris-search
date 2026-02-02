@@ -18,7 +18,13 @@ vscode.onMessage(async (message: unknown) => {
       await app.setPreview(msg.preview);
       break;
     case 'setBusy':
-      app.setBusy(msg.busy);
+      app.setBusy(msg.busy, msg.searchId);
+      break;
+    case 'searchCancelled':
+      app.setSearchCancelled(msg.searchId);
+      break;
+    case 'searchTimedOut':
+      app.setSearchTimedOut(msg.searchId);
       break;
     case 'setUIState':
       app.setUIState(msg.state);
@@ -40,4 +46,3 @@ if (appRoot) {
 }
 
 vscode.postMessage({ type: 'ready' });
-

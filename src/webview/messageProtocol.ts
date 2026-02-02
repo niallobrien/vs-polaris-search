@@ -9,7 +9,9 @@ import {
 } from '../core/types';
 
 export type ExtensionMessage =
-  | { type: 'setBusy'; busy: boolean }
+  | { type: 'setBusy'; busy: boolean; searchId: number }
+  | { type: 'searchCancelled'; searchId: number }
+  | { type: 'searchTimedOut'; searchId: number }
   | { type: 'setFileResults'; results: FileResultDTO[] }
   | { type: 'setSearchResults'; results: SearchResultDTO[]; totalCount: number }
   | { type: 'setPreview'; preview: PreviewDTO }
@@ -30,6 +32,7 @@ export type WebviewMessage =
   | { type: 'toggleUseRegex' }
   | { type: 'toggleLiveSearch' }
   | { type: 'toggleReplace' }
+  | { type: 'cancelSearch' }
   | { type: 'replaceOne'; path: string; line: number; column: number; matchLength: number; replaceText: string }
   | { type: 'replaceAll'; replaceText: string };
 

@@ -9,6 +9,7 @@ export interface SearchInputCallbacks {
   onPageDown: () => void;
   onHome: () => void;
   onEnd: () => void;
+  onCancel: () => void;
 }
 
 export class SearchInput {
@@ -173,6 +174,11 @@ export class SearchInput {
     if (!this.callbacks) return;
 
     switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        event.stopPropagation();
+        this.callbacks.onCancel();
+        break;
       case 'ArrowDown':
         event.preventDefault();
         this.callbacks.onArrowDown();

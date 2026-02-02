@@ -72,6 +72,11 @@ export class PolarisPanel {
   private lastIncludeGlobs: string[] = [];
   private lastExcludeGlobs: string[] = [];
   private lastSearchResults: SearchResultDTO[] = [];
+  private searchCounter = 0;
+  private activeSearchController: AbortController | null = null;
+  private activeSearchTimeout: NodeJS.Timeout | null = null;
+  private readonly searchTimeoutMs = 15000;
+  private activeSearchId: number | null = null;
 
   public static createOrShow(
     context: vscode.ExtensionContext,
@@ -248,6 +253,9 @@ export class PolarisPanel {
         this.uiState.showReplace = !this.uiState.showReplace;
         this.sendUIState();
         break;
+      case "cancelSearch":
+        this.cancelActiveSearch();
+        break;
       case "replaceOne":
         await this.handleReplaceOne(
           message.path,
@@ -322,6 +330,62 @@ export class PolarisPanel {
     }
   }
 
+  private cancelActiveSearch(silent: boolean = false): void {
+    if (!this.activeSearchController) {
+      return;
+    }
+
+    if (this.activeSearchTimeout) {
+      clearTimeout(this.activeSearchTimeout);
+      this.activeSearchTimeout = null;
+    }
+
+    this.activeSearchController.abort();
+    this.activeSearchController = null;
+    const searchId = this.activeSearchId;
+    this.activeSearchId = null;
+    this.searchCounter += 1;
+    if (!silent && searchId !== null) {
+      this.postMessage({ type: "setBusy", busy: false, searchId });
+      this.postMessage({ type: "searchCancelled", searchId });
+    }
+  }
+
+  private scheduleSearchTimeout(controller: AbortController): void {
+    if (this.activeSearchTimeout) {
+      clearTimeout(this.activeSearchTimeout);
+    }
+
+    this.activeSearchTimeout = setTimeout(() => {
+      if (this.activeSearchController !== controller) {
+        return;
+      }
+
+      const searchId = this.activeSearchId;
+      this.activeSearchController.abort();
+      this.activeSearchController = null;
+      this.activeSearchId = null;
+      this.searchCounter += 1;
+      if (searchId !== null) {
+        this.postMessage({ type: "setBusy", busy: false, searchId });
+        this.postMessage({ type: "searchTimedOut", searchId });
+      }
+    }, this.searchTimeoutMs);
+  }
+
+  private beginSearch(): { id: number; signal: AbortSignal } {
+    if (this.activeSearchController) {
+      this.activeSearchController.abort();
+    }
+
+    this.searchCounter += 1;
+    this.activeSearchController = new AbortController();
+    this.activeSearchId = this.searchCounter;
+    this.scheduleSearchTimeout(this.activeSearchController);
+
+    return { id: this.searchCounter, signal: this.activeSearchController.signal };
+  }
+
   private async handleQueryChanged(
     query: string,
     includeGlobs?: string[],
@@ -336,7 +400,8 @@ export class PolarisPanel {
       return;
     }
 
-    this.postMessage({ type: "setBusy", busy: true });
+    const { id: searchId, signal } = this.beginSearch();
+    this.postMessage({ type: "setBusy", busy: true, searchId });
 
     try {
       if (this.uiState.mode === "findFiles") {
@@ -345,7 +410,12 @@ export class PolarisPanel {
           matchCase: this.uiState.matchCase,
           matchWholeWord: this.uiState.matchWholeWord,
           useRegex: this.uiState.useRegex,
+          signal,
         });
+
+        if (searchId !== this.searchCounter || signal.aborted) {
+          return;
+        }
 
         this.postMessage({
           type: "setFileResults",
@@ -355,7 +425,7 @@ export class PolarisPanel {
         const openFilePaths = this.getOpenFilePaths();
 
         if (openFilePaths.length === 0) {
-          this.postMessage({ type: "setBusy", busy: false });
+          this.postMessage({ type: "setBusy", busy: false, searchId });
           this.lastSearchResults = [];
           this.postMessage({
             type: "setSearchResults",
@@ -373,7 +443,12 @@ export class PolarisPanel {
           matchWholeWord: this.uiState.matchWholeWord,
           useRegex: this.uiState.useRegex,
           filePaths: openFilePaths,
+          signal,
         });
+
+        if (searchId !== this.searchCounter || signal.aborted) {
+          return;
+        }
 
         this.lastSearchResults = results;
 
@@ -392,7 +467,12 @@ export class PolarisPanel {
           useRegex: this.uiState.useRegex,
           includeGlobs: includeGlobs || [],
           excludeGlobs: excludeGlobs || [],
+          signal,
         });
+
+        if (searchId !== this.searchCounter || signal.aborted) {
+          return;
+        }
 
         this.lastSearchResults = results;
 
@@ -403,9 +483,19 @@ export class PolarisPanel {
         });
       }
     } catch (error) {
-      console.error("Error during search:", error);
+      if (!signal.aborted) {
+        console.error("Error during search:", error);
+      }
     } finally {
-      this.postMessage({ type: "setBusy", busy: false });
+      if (searchId === this.searchCounter) {
+        if (this.activeSearchTimeout) {
+          clearTimeout(this.activeSearchTimeout);
+          this.activeSearchTimeout = null;
+        }
+        this.activeSearchController = null;
+        this.activeSearchId = null;
+        this.postMessage({ type: "setBusy", busy: false, searchId });
+      }
     }
   }
 
@@ -494,6 +584,10 @@ export class PolarisPanel {
     filePath: string,
     expectedMtime: number,
   ): Promise<SearchResultDTO | null> {
+    if (expectedMtime <= 0) {
+      return null;
+    }
+
     const workspaceRoot = this.getWorkspaceRoot();
     if (!workspaceRoot) return null;
 
@@ -895,6 +989,7 @@ export class PolarisPanel {
 
   public dispose(): void {
     PolarisPanel.currentPanels.delete(this.panelId);
+    this.cancelActiveSearch(true);
 
     this.panel.dispose();
 
