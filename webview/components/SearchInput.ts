@@ -22,6 +22,10 @@ export class SearchInput {
   private liveSearch = true;
   private currentMode: SearchMode = 'findInFiles';
   private readonly MAX_HEIGHT = 150;
+  private history: string[] = [];
+  private historyIndex = -1;
+  private historyDraft: string | null = null;
+  private lastHistoryQuery = '';
 
   mount(container: HTMLElement): void {
     this.container = container;
@@ -81,6 +85,14 @@ export class SearchInput {
 
   setLiveSearch(enabled: boolean): void {
     this.liveSearch = enabled;
+  }
+
+  setHistory(history: string[]): void {
+    this.history = [...history];
+    if (this.historyIndex >= this.history.length) {
+      this.historyIndex = -1;
+      this.historyDraft = null;
+    }
   }
 
   focus(): void {
@@ -151,6 +163,8 @@ export class SearchInput {
       query,
       ...extraParams
     });
+
+    this.maybeSaveHistory(query);
   }
 
   private handleInput(event: Event): void {
@@ -158,6 +172,9 @@ export class SearchInput {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+
+    this.historyIndex = -1;
+    this.historyDraft = null;
 
     this.autoResize();
 
@@ -180,10 +197,20 @@ export class SearchInput {
         this.callbacks.onCancel();
         break;
       case 'ArrowDown':
+        if (event.altKey) {
+          event.preventDefault();
+          this.cycleHistory(1);
+          break;
+        }
         event.preventDefault();
         this.callbacks.onArrowDown();
         break;
       case 'ArrowUp':
+        if (event.altKey) {
+          event.preventDefault();
+          this.cycleHistory(-1);
+          break;
+        }
         event.preventDefault();
         this.callbacks.onArrowUp();
         break;
@@ -217,5 +244,51 @@ export class SearchInput {
         this.callbacks.onEnd();
         break;
     }
+  }
+
+  private cycleHistory(direction: number): void {
+    if (!this.inputElement || this.history.length === 0) {
+      return;
+    }
+
+    if (this.historyIndex === -1) {
+      if (direction < 0) {
+        this.historyDraft = this.inputElement.value;
+        this.historyIndex = 0;
+      } else {
+        return;
+      }
+    } else {
+      const nextIndex = this.historyIndex + (direction < 0 ? 1 : -1);
+      if (nextIndex < 0) {
+        this.historyIndex = -1;
+        if (this.historyDraft !== null) {
+          this.inputElement.value = this.historyDraft;
+        }
+        this.historyDraft = null;
+        this.autoResize();
+        return;
+      }
+      this.historyIndex = Math.min(nextIndex, this.history.length - 1);
+    }
+
+    const entry = this.history[this.historyIndex];
+    if (entry !== undefined) {
+      this.inputElement.value = entry;
+      this.autoResize();
+      this.triggerSearch();
+    }
+  }
+
+  private maybeSaveHistory(query: string): void {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      return;
+    }
+    if (trimmed === this.lastHistoryQuery) {
+      return;
+    }
+    this.lastHistoryQuery = trimmed;
+    vscode.postMessage({ type: 'saveSearchHistory', query: trimmed });
   }
 }

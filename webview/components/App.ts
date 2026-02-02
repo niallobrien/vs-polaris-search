@@ -37,6 +37,7 @@ export class App {
   ];
   private isBusy = false;
   private currentSearchId: number | null = null;
+  private errorCount = 0;
 
   constructor() {
     this.searchInput = new SearchInput();
@@ -48,154 +49,176 @@ export class App {
 
   mount(container: HTMLElement): void {
     this.container = container;
-    this.render();
+    this.runGuarded("mount", () => this.render());
   }
 
   setFileResults(results: FileResultDTO[]): void {
-    this.hasSearched = true;
-    this.resultsList.setResults(results);
-    this.updateResultSummary(`${results.length} files`);
+    this.runGuarded("setFileResults", () => {
+      this.hasSearched = true;
+      this.resultsList.setResults(results);
+      this.updateResultSummary(`${results.length} files`);
 
-    if (results.length === 0) {
-      this.previewPane.clear();
-    }
+      if (results.length === 0) {
+        this.previewPane.clear();
+      }
+    });
   }
 
   setSearchResults(results: SearchResultDTO[], totalCount: number): void {
-    this.hasSearched = true;
-    this.resultsList.setSearchResults(results);
-    const fileCount = new Set(results.map((r) => r.path)).size;
-    this.updateResultSummary(`${totalCount} matches in ${fileCount}+ files`);
+    this.runGuarded("setSearchResults", () => {
+      this.hasSearched = true;
+      this.resultsList.setSearchResults(results);
+      const fileCount = new Set(results.map((r) => r.path)).size;
+      this.updateResultSummary(`${totalCount} matches in ${fileCount}+ files`);
 
-    if (results.length === 0) {
-      this.previewPane.clear();
-    }
+      if (results.length === 0) {
+        this.previewPane.clear();
+      }
+    });
   }
 
   async setPreview(preview: PreviewDTO): Promise<void> {
-    this.currentPreviewData = preview;
-    await this.previewPane.setPreview(preview);
+    await this.runGuardedAsync("setPreview", async () => {
+      this.currentPreviewData = preview;
+      await this.previewPane.setPreview(preview);
+    });
   }
 
   async setConfig(config: ConfigDTO): Promise<void> {
-    console.log(
-      "[Polaris Webview] setConfig called with theme:",
-      config.theme,
-      "themeKind:",
-      config.themeKind,
-    );
-    this.searchInput.setDebounceDelay(config.liveSearchDelay);
+    await this.runGuardedAsync("setConfig", async () => {
+      console.log(
+        "[Polaris Webview] setConfig called with theme:",
+        config.theme,
+        "themeKind:",
+        config.themeKind,
+      );
+      this.searchInput.setDebounceDelay(config.liveSearchDelay);
 
-    this.themeKind = config.themeKind;
-    this.previewPane.setConfig(config);
+      this.themeKind = config.themeKind;
+      this.previewPane.setConfig(config);
 
-    const previousTheme = highlighter.getTheme();
-    console.log(
-      "[Polaris Webview] previousTheme:",
-      previousTheme,
-      "newTheme:",
-      config.theme,
-    );
+      const previousTheme = highlighter.getTheme();
+      console.log(
+        "[Polaris Webview] previousTheme:",
+        previousTheme,
+        "newTheme:",
+        config.theme,
+      );
 
-    try {
-      await highlighter.setTheme(config.theme);
+      try {
+        await highlighter.setTheme(config.theme);
 
-      // Apply theme's background color to the preview pane container
-      const previewPaneContainer = document.getElementById("preview-pane");
-      if (previewPaneContainer) {
-        const bgColor = highlighter.getThemeBackgroundColor();
-        if (bgColor) {
-          previewPaneContainer.style.backgroundColor = bgColor;
-          console.log("[Polaris Webview] Applied background color:", bgColor);
-        } else {
-          // Fallback to VS Code editor background color
-          previewPaneContainer.style.backgroundColor = "";
-          console.log(
-            "[Polaris Webview] Using VS Code editor background color",
-          );
+        // Apply theme's background color to the preview pane container
+        const previewPaneContainer = document.getElementById("preview-pane");
+        if (previewPaneContainer) {
+          const bgColor = highlighter.getThemeBackgroundColor();
+          if (bgColor) {
+            previewPaneContainer.style.backgroundColor = bgColor;
+            console.log("[Polaris Webview] Applied background color:", bgColor);
+          } else {
+            // Fallback to VS Code editor background color
+            previewPaneContainer.style.backgroundColor = "";
+            console.log(
+              "[Polaris Webview] Using VS Code editor background color",
+            );
+          }
         }
-      }
 
-      if (previousTheme !== config.theme && this.currentPreviewData) {
-        await this.previewPane.setPreview(this.currentPreviewData);
+        if (previousTheme !== config.theme && this.currentPreviewData) {
+          await this.previewPane.setPreview(this.currentPreviewData);
+        }
+      } catch (error) {
+        console.error("Failed to apply theme:", config.theme, error);
       }
-    } catch (error) {
-      console.error("Failed to apply theme:", config.theme, error);
-    }
+    });
   }
 
   setBusy(busy: boolean, searchId: number): void {
-    if (busy) {
-      this.isBusy = true;
-      this.currentSearchId = searchId;
-      this.hasSearched = true;
-      this.startBusyAnimation();
-      return;
-    }
+    this.runGuarded("setBusy", () => {
+      if (busy) {
+        this.isBusy = true;
+        this.currentSearchId = searchId;
+        this.hasSearched = true;
+        this.startBusyAnimation();
+        return;
+      }
 
-    if (this.currentSearchId !== searchId) {
-      return;
-    }
+      if (this.currentSearchId !== searchId) {
+        return;
+      }
 
-    this.isBusy = false;
-    this.stopBusyAnimation();
-    this.currentSearchId = null;
+      this.isBusy = false;
+      this.stopBusyAnimation();
+      this.currentSearchId = null;
+    });
   }
 
   setSearchCancelled(searchId: number): void {
-    if (!this.isBusy || this.currentSearchId !== searchId) {
-      return;
-    }
+    this.runGuarded("setSearchCancelled", () => {
+      if (!this.isBusy || this.currentSearchId !== searchId) {
+        return;
+      }
 
-    this.isBusy = false;
-    this.hasSearched = true;
-    this.stopBusyAnimation();
-    this.updateResultSummary("Cancelled search");
-    this.currentSearchId = null;
+      this.isBusy = false;
+      this.hasSearched = true;
+      this.stopBusyAnimation();
+      this.updateResultSummary("Cancelled search");
+      this.currentSearchId = null;
+    });
   }
 
   setSearchTimedOut(searchId: number): void {
-    if (!this.isBusy || this.currentSearchId !== searchId) {
-      return;
-    }
+    this.runGuarded("setSearchTimedOut", () => {
+      if (!this.isBusy || this.currentSearchId !== searchId) {
+        return;
+      }
 
-    this.isBusy = false;
-    this.hasSearched = true;
-    this.stopBusyAnimation();
-    this.updateResultSummary("Search timed out");
-    this.currentSearchId = null;
+      this.isBusy = false;
+      this.hasSearched = true;
+      this.stopBusyAnimation();
+      this.updateResultSummary("Search timed out");
+      this.currentSearchId = null;
+    });
   }
 
   focusSearchInput(): void {
-    this.searchInput.focus();
+    this.runGuarded("focusSearchInput", () => this.searchInput.focus());
   }
 
   setUIState(state: UIStateDTO): void {
-    this.uiState = state;
+    this.runGuarded("setUIState", () => {
+      this.uiState = state;
 
-    this.searchInput.setMode(state.mode);
-    this.resultsList.setSearchMode(state.mode);
-    this.searchOptions.setState({
-      matchCase: state.matchCase,
-      matchWholeWord: state.matchWholeWord,
-      useRegex: state.useRegex,
-      liveSearch: state.liveSearch,
-      mode: state.mode,
-      showReplace: state.showReplace,
+      this.searchInput.setMode(state.mode);
+      this.resultsList.setSearchMode(state.mode);
+      this.searchOptions.setState({
+        matchCase: state.matchCase,
+        matchWholeWord: state.matchWholeWord,
+        useRegex: state.useRegex,
+        liveSearch: state.liveSearch,
+        mode: state.mode,
+        showReplace: state.showReplace,
+      });
+
+      this.searchInput.setLiveSearch(state.liveSearch);
+
+      this.replaceInput.setVisible(
+        state.showReplace && state.mode !== "findFiles",
+      );
+
+      this.updateResultsDisplay(state.mode);
+
+      this.previewPane.clear();
+
+      this.hasSearched = false;
+      this.updateResultSummary("");
     });
+  }
 
-    this.searchInput.setLiveSearch(state.liveSearch);
-
-    this.replaceInput.setVisible(
-      state.showReplace && state.mode !== "findFiles",
-    );
-
-    this.updateResultsDisplay(state.mode);
-
-    this.previewPane.clear();
-
-    this.hasSearched = false;
-    this.updateResultSummary("");
+  setSearchHistory(history: string[]): void {
+    this.runGuarded("setSearchHistory", () => {
+      this.searchInput.setHistory(history);
+    });
   }
 
   private updateResultsDisplay(
@@ -322,38 +345,40 @@ export class App {
     });
 
     document.addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        if (!document.hasFocus()) {
-          return;
+      this.runGuarded("keydown", () => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+          if (!document.hasFocus()) {
+            return;
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          this.searchInput.focus();
         }
-        e.preventDefault();
-        e.stopPropagation();
-        this.searchInput.focus();
-      }
 
-      if (e.key === "Escape") {
-        if (!this.isBusy) {
-          return;
+        if (e.key === "Escape") {
+          if (!this.isBusy) {
+            return;
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.currentSearchId !== null) {
+            this.setSearchCancelled(this.currentSearchId);
+          }
+          vscode.postMessage({ type: "cancelSearch" });
         }
-        e.preventDefault();
-        e.stopPropagation();
-        if (this.currentSearchId !== null) {
-          this.setSearchCancelled(this.currentSearchId);
+
+        if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+          e.preventDefault();
+          e.stopPropagation();
+          this.toggleMode();
         }
-        vscode.postMessage({ type: "cancelSearch" });
-      }
 
-      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
-        e.preventDefault();
-        e.stopPropagation();
-        this.toggleMode();
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "h") {
-        e.preventDefault();
-        e.stopPropagation();
-        this.toggleReplace();
-      }
+        if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "h") {
+          e.preventDefault();
+          e.stopPropagation();
+          this.toggleReplace();
+        }
+      });
     });
   }
 
@@ -401,5 +426,53 @@ export class App {
       type: "replaceAll",
       replaceText,
     });
+  }
+
+  private runGuarded(context: string, action: () => void): void {
+    try {
+      action();
+    } catch (error) {
+      this.handleError(error, context);
+    }
+  }
+
+  private async runGuardedAsync(
+    context: string,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await action();
+    } catch (error) {
+      this.handleError(error, context);
+    }
+  }
+
+  private handleError(error: unknown, context: string): void {
+    this.errorCount += 1;
+    console.error(`[Polaris Webview] App error in ${context}:`, error);
+
+    if (!this.container) {
+      return;
+    }
+
+    if (this.errorCount > 3) {
+      return;
+    }
+
+    const message =
+      error instanceof Error ? error.message : "Unexpected error";
+    this.container.innerHTML = `
+      <div class="polaris-search-app">
+        <div class="results-placeholder">
+          Something went wrong in the search UI. ${this.escapeHtml(message)}
+        </div>
+      </div>
+    `;
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
   }
 }

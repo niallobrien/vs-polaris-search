@@ -32,6 +32,9 @@ vscode.onMessage(async (message: unknown) => {
     case 'setConfig':
       await app.setConfig(msg.config);
       break;
+    case 'setSearchHistory':
+      app.setSearchHistory(msg.history);
+      break;
     case 'focusSearchInput':
       app.focusSearchInput();
       break;

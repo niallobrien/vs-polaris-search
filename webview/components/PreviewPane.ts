@@ -5,10 +5,13 @@ export class PreviewPane {
   private container: HTMLElement | null = null;
   private currentPreview: PreviewDTO | null = null;
   private config: ConfigDTO | null = null;
+  private errorCount = 0;
 
   mount(container: HTMLElement): void {
     this.container = container;
-    this.render();
+    this.runGuarded("mount", () => {
+      this.render();
+    });
   }
 
   setConfig(config: ConfigDTO): void {
@@ -16,16 +19,21 @@ export class PreviewPane {
   }
 
   async setPreview(preview: PreviewDTO): Promise<void> {
-    this.currentPreview = preview;
-    await this.render();
+    await this.runGuardedAsync("setPreview", async () => {
+      this.currentPreview = preview;
+      await this.render();
+    });
   }
 
   clear(): void {
-    this.currentPreview = null;
-    this.render();
+    this.runGuarded("clear", () => {
+      this.currentPreview = null;
+      this.render();
+    });
   }
 
   private async render(): Promise<void> {
+<<<<<<< ours
     if (!this.container) {
       return;
     }
@@ -71,92 +79,136 @@ export class PreviewPane {
         adjustedHighlightLine = undefined;
       }
     }
+=======
+    await this.runGuardedAsync("render", async () => {
+      if (!this.container) {
+        return;
+      }
+>>>>>>> theirs
 
-    let highlighted = await highlighter.highlight(
-      contentToShow,
-      language,
-      adjustedHighlightLine,
-    );
+      if (!this.currentPreview) {
+        this.container.innerHTML = `
+          <div class="preview-pane">
+            <div class="preview-placeholder">Select a result to preview</div>
+          </div>
+        `;
+        return;
+      }
 
-    console.log("[PreviewPane] Highlight conditions:", {
-      previewHighlightSearchTerm: this.config?.previewHighlightSearchTerm,
-      searchTerm,
-      highlightLine,
-      adjustedHighlightLine,
-      searchOptions,
-    });
-
-    if (
-      this.config?.previewHighlightSearchTerm &&
-      searchTerm &&
-      adjustedHighlightLine !== undefined
-    ) {
-      console.log("[PreviewPane] Calling highlightSearchTerm");
-      highlighted = this.highlightSearchTerm(
-        highlighted,
+      const {
+        content,
+        language,
+        highlightLine,
+        path,
         searchTerm,
         searchOptions,
+      } = this.currentPreview;
+
+      const lines = content.split("\n");
+      const isLargeFile = lines.length > 1000;
+
+      let contentToShow = content;
+      let lineOffset = 0;
+      let adjustedHighlightLine: number | undefined = highlightLine;
+
+      if (isLargeFile && highlightLine !== undefined) {
+        const contextLines = 200;
+        const startLine = Math.max(0, highlightLine - contextLines);
+        const endLine = Math.min(lines.length, highlightLine + contextLines);
+
+        contentToShow = lines.slice(startLine, endLine).join("\n");
+        lineOffset = startLine;
+        adjustedHighlightLine = highlightLine - lineOffset;
+      }
+
+      let highlighted = await highlighter.highlight(
+        contentToShow,
+        language,
         adjustedHighlightLine,
       );
-    } else {
-      console.log("[PreviewPane] Skipping highlightSearchTerm");
-    }
 
-    const fileName = path.split("/").pop() || path;
-    const lineInfo = highlightLine !== undefined ? `:${highlightLine}` : "";
+      console.log("[PreviewPane] Highlight conditions:", {
+        previewHighlightSearchTerm: this.config?.previewHighlightSearchTerm,
+        searchTerm,
+        highlightLine,
+        adjustedHighlightLine,
+        searchOptions,
+      });
 
-    const showLineNumbers = this.config?.previewShowLineNumbers ?? true;
-    const lineNumberClass = showLineNumbers ? "show-line-numbers" : "";
-    const startingLineNumber = lineOffset + 1;
-    const lineNumberStyle = showLineNumbers
-      ? `style="--line-number-start: ${startingLineNumber};"`
-      : "";
+      if (
+        this.config?.previewHighlightSearchTerm &&
+        searchTerm &&
+        adjustedHighlightLine !== undefined
+      ) {
+        console.log("[PreviewPane] Calling highlightSearchTerm");
+        highlighted = this.highlightSearchTerm(
+          highlighted,
+          searchTerm,
+          searchOptions,
+          adjustedHighlightLine,
+        );
+      } else {
+        console.log("[PreviewPane] Skipping highlightSearchTerm");
+      }
 
-    this.container.innerHTML = `
-      <div class="preview-pane">
-        <div class="preview-header">
-          <span class="preview-filename">${this.escapeHtml(fileName)}${lineInfo}</span>
-          <span class="preview-path">${this.escapeHtml(path)}</span>
+      const fileName = path.split("/").pop() || path;
+      const lineInfo = highlightLine !== undefined ? `:${highlightLine}` : "";
+
+      const showLineNumbers = this.config?.previewShowLineNumbers ?? true;
+      const lineNumberClass = showLineNumbers ? "show-line-numbers" : "";
+      const startingLineNumber = lineOffset + 1;
+      const lineNumberStyle = showLineNumbers
+        ? `style="--line-number-start: ${startingLineNumber};"`
+        : "";
+
+      this.container.innerHTML = `
+        <div class="preview-pane">
+          <div class="preview-header">
+            <span class="preview-filename">${this.escapeHtml(fileName)}${lineInfo}</span>
+            <span class="preview-path">${this.escapeHtml(path)}</span>
+          </div>
+          <div class="preview-content ${lineNumberClass}" ${lineNumberStyle}>
+            ${highlighted}
+          </div>
         </div>
-        <div class="preview-content ${lineNumberClass}" ${lineNumberStyle}>
-          ${highlighted}
-        </div>
-      </div>
-    `;
+      `;
 
-    if (highlightLine !== undefined) {
-      this.scrollToHighlightedLine();
-    }
+      if (highlightLine !== undefined) {
+        this.scrollToHighlightedLine();
+      }
+    });
   }
 
   private scrollToHighlightedLine(): void {
-    if (!this.container) {
-      return;
-    }
-
-    setTimeout(() => {
-      const previewContent = this.container?.querySelector(
-        ".preview-content",
-      ) as HTMLElement;
-      const highlightedLine = this.container?.querySelector(
-        ".highlighted-line",
-      ) as HTMLElement;
-
-      if (highlightedLine && previewContent) {
-        const containerRect = previewContent.getBoundingClientRect();
-        const lineRect = highlightedLine.getBoundingClientRect();
-        const currentScrollTop = previewContent.scrollTop;
-
-        const targetScrollTop =
-          currentScrollTop +
-          lineRect.top -
-          containerRect.top -
-          containerRect.height / 2 +
-          lineRect.height / 2;
-
-        previewContent.scrollTop = targetScrollTop;
+    this.runGuarded("scrollToHighlightedLine", () => {
+      if (!this.container) {
+        return;
       }
-    }, 0);
+
+      setTimeout(() => {
+        const previewContent = this.container?.querySelector(
+          ".preview-content",
+        ) as HTMLElement;
+        const highlightedLine = this.container?.querySelector(
+          ".highlighted-line",
+        ) as HTMLElement;
+
+        if (highlightedLine && previewContent) {
+          const containerRect = previewContent.getBoundingClientRect();
+          const lineRect = highlightedLine.getBoundingClientRect();
+          const currentScrollTop = previewContent.scrollTop;
+
+          const targetScrollTop =
+            currentScrollTop +
+            lineRect.top -
+            containerRect.top -
+            containerRect.height / 2 +
+            lineRect.height / 2;
+
+          previewContent.scrollTop = targetScrollTop;
+        }
+      }, 0);
+    });
   }
 
   private highlightSearchTerm(
@@ -384,5 +436,43 @@ export class PreviewPane {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private runGuarded(context: string, action: () => void): void {
+    try {
+      action();
+    } catch (error) {
+      this.handleError(error, context);
+    }
+  }
+
+  private async runGuardedAsync(
+    context: string,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await action();
+    } catch (error) {
+      this.handleError(error, context);
+    }
+  }
+
+  private handleError(error: unknown, context: string): void {
+    this.errorCount += 1;
+    console.error(`[Polaris Webview] PreviewPane error in ${context}:`, error);
+
+    if (!this.container || this.errorCount > 3) {
+      return;
+    }
+
+    const message =
+      error instanceof Error ? error.message : "Unexpected error";
+    this.container.innerHTML = `
+      <div class="preview-pane">
+        <div class="preview-placeholder">
+          Preview unavailable. ${this.escapeHtml(message)}
+        </div>
+      </div>
+    `;
   }
 }

@@ -17,6 +17,7 @@ export type ExtensionMessage =
   | { type: 'setPreview'; preview: PreviewDTO }
   | { type: 'setUIState'; state: UIStateDTO }
   | { type: 'setConfig'; config: ConfigDTO }
+  | { type: 'setSearchHistory'; history: string[] }
   | { type: 'focusSearchInput' }
   | { type: 'replaceComplete'; result: ReplaceResult };
 
@@ -33,6 +34,7 @@ export type WebviewMessage =
   | { type: 'toggleLiveSearch' }
   | { type: 'toggleReplace' }
   | { type: 'cancelSearch' }
+  | { type: 'saveSearchHistory'; query: string }
   | { type: 'replaceOne'; path: string; line: number; column: number; matchLength: number; replaceText: string }
   | { type: 'replaceAll'; replaceText: string };
 

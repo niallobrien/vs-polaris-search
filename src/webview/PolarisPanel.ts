@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { TextDecoder, TextEncoder } from "util";
 import {
   SearchMode,
   UIStateDTO,
@@ -14,6 +15,8 @@ import {
 } from "../config/settings";
 
 const TOGGLE_PREFS_KEY = "polaris-search.togglePreferences";
+const SEARCH_HISTORY_KEY = "polaris-search.searchHistory";
+const MAX_SEARCH_HISTORY = 20;
 
 export class PolarisPanel {
   public static currentPanels: Map<string, PolarisPanel> = new Map();
@@ -168,7 +171,7 @@ export class PolarisPanel {
     );
 
     this.panel.onDidChangeViewState(
-      (e) => {
+      (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
         if (e.webviewPanel.active) {
           this.postMessage({ type: "focusSearchInput" });
         }
@@ -203,6 +206,10 @@ export class PolarisPanel {
       case "ready":
         this.postMessage({ type: "setConfig", config: getConfig() });
         this.postMessage({ type: "setUIState", state: this.uiState });
+        this.postMessage({
+          type: "setSearchHistory",
+          history: this.getSearchHistory(),
+        });
         break;
       case "queryChanged":
         this.handleQueryChanged(
@@ -268,6 +275,9 @@ export class PolarisPanel {
       case "replaceAll":
         await this.handleReplaceAll(message.replaceText);
         break;
+      case "saveSearchHistory":
+        await this.updateSearchHistory(message.query);
+        break;
     }
   }
 
@@ -284,6 +294,28 @@ export class PolarisPanel {
     };
 
     await this.context.globalState.update(TOGGLE_PREFS_KEY, prefs);
+  }
+
+  private getSearchHistory(): string[] {
+    return (
+      this.context.globalState.get<string[]>(SEARCH_HISTORY_KEY) ?? []
+    );
+  }
+
+  private async updateSearchHistory(query: string): Promise<void> {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const history = this.getSearchHistory();
+    const nextHistory = [
+      trimmed,
+      ...history.filter((item) => item !== trimmed),
+    ].slice(0, MAX_SEARCH_HISTORY);
+
+    await this.context.globalState.update(SEARCH_HISTORY_KEY, nextHistory);
+    this.postMessage({ type: "setSearchHistory", history: nextHistory });
   }
 
   private updatePanelTitle(): void {

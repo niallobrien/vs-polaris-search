@@ -9,10 +9,11 @@ export class ResultsList {
   private selectedIndex = -1;
   private mode: 'files' | 'content' = 'files';
   private currentSearchMode: SearchMode = 'findInFiles';
+  private errorCount = 0;
 
   mount(container: HTMLElement): void {
     this.container = container;
-    this.render();
+    this.runGuarded('mount', () => this.render());
   }
 
   setSearchMode(searchMode: SearchMode): void {
@@ -20,98 +21,114 @@ export class ResultsList {
   }
 
   setResults(results: FileResultDTO[]): void {
-    this.mode = 'files';
-    this.results = results;
-    this.selectedIndex = results.length > 0 ? 0 : -1;
-    this.render();
+    this.runGuarded('setResults', () => {
+      this.mode = 'files';
+      this.results = results;
+      this.selectedIndex = results.length > 0 ? 0 : -1;
+      this.render();
 
-    if (this.selectedIndex >= 0) {
-      const result = this.results[0] as FileResultDTO;
-      vscode.postMessage({
-        type: 'resultSelected',
-        path: result.path
-      });
-    }
+      if (this.selectedIndex >= 0) {
+        const result = this.results[0] as FileResultDTO;
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: result.path
+        });
+      }
+    });
   }
 
   setSearchResults(results: SearchResultDTO[]): void {
-    this.mode = 'content';
-    this.results = results;
-    this.selectedIndex = results.length > 0 ? 0 : -1;
-    this.render();
+    this.runGuarded('setSearchResults', () => {
+      this.mode = 'content';
+      this.results = results;
+      this.selectedIndex = results.length > 0 ? 0 : -1;
+      this.render();
 
-    if (this.selectedIndex >= 0) {
-      const result = this.results[0] as SearchResultDTO;
-      vscode.postMessage({
-        type: 'resultSelected',
-        path: result.path,
-        line: result.line
-      });
-    }
+      if (this.selectedIndex >= 0) {
+        const result = this.results[0] as SearchResultDTO;
+        vscode.postMessage({
+          type: 'resultSelected',
+          path: result.path,
+          line: result.line
+        });
+      }
+    });
   }
 
   selectNext(): void {
-    if (this.results.length === 0) return;
-    
-    const newIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
-    this.updateSelection(newIndex);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectNext', () => {
+      if (this.results.length === 0) return;
+      
+      const newIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+      this.updateSelection(newIndex);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   selectPrevious(): void {
-    if (this.results.length === 0) return;
-    
-    const newIndex = Math.max(this.selectedIndex - 1, 0);
-    this.updateSelection(newIndex);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectPrevious', () => {
+      if (this.results.length === 0) return;
+      
+      const newIndex = Math.max(this.selectedIndex - 1, 0);
+      this.updateSelection(newIndex);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   selectFirst(): void {
-    if (this.results.length === 0) return;
-    this.updateSelection(0);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectFirst', () => {
+      if (this.results.length === 0) return;
+      this.updateSelection(0);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   selectLast(): void {
-    if (this.results.length === 0) return;
-    this.updateSelection(this.results.length - 1);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectLast', () => {
+      if (this.results.length === 0) return;
+      this.updateSelection(this.results.length - 1);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   selectPageUp(): void {
-    if (this.results.length === 0) return;
-    
-    const { container, items } = this.getListElements();
-    if (!container || items.length === 0) return;
-    
-    const firstVisibleIndex = this.findFirstFullyVisibleIndex(container, items);
-    const alreadyAtOrAboveFirstVisible = this.selectedIndex <= firstVisibleIndex;
-    
-    const newIndex = alreadyAtOrAboveFirstVisible ? 0 : firstVisibleIndex;
-    
-    this.updateSelection(newIndex);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectPageUp', () => {
+      if (this.results.length === 0) return;
+      
+      const { container, items } = this.getListElements();
+      if (!container || items.length === 0) return;
+      
+      const firstVisibleIndex = this.findFirstFullyVisibleIndex(container, items);
+      const alreadyAtOrAboveFirstVisible = this.selectedIndex <= firstVisibleIndex;
+      
+      const newIndex = alreadyAtOrAboveFirstVisible ? 0 : firstVisibleIndex;
+      
+      this.updateSelection(newIndex);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   selectPageDown(): void {
-    if (this.results.length === 0) return;
-    
-    const { container, items } = this.getListElements();
-    if (!container || items.length === 0) return;
-    
-    const lastVisibleIndex = this.findLastFullyVisibleIndex(container, items);
-    const alreadyAtOrBelowLastVisible = this.selectedIndex >= lastVisibleIndex;
-    
-    const newIndex = alreadyAtOrBelowLastVisible ? this.results.length - 1 : lastVisibleIndex;
-    
-    this.updateSelection(newIndex);
-    this.scrollSelectedIntoView();
-    this.notifySelection();
+    this.runGuarded('selectPageDown', () => {
+      if (this.results.length === 0) return;
+      
+      const { container, items } = this.getListElements();
+      if (!container || items.length === 0) return;
+      
+      const lastVisibleIndex = this.findLastFullyVisibleIndex(container, items);
+      const alreadyAtOrBelowLastVisible = this.selectedIndex >= lastVisibleIndex;
+      
+      const newIndex = alreadyAtOrBelowLastVisible ? this.results.length - 1 : lastVisibleIndex;
+      
+      this.updateSelection(newIndex);
+      this.scrollSelectedIntoView();
+      this.notifySelection();
+    });
   }
 
   private updateSelection(newIndex: number): void {
@@ -132,23 +149,25 @@ export class ResultsList {
   }
 
   openSelected(): void {
-    if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
-      const result = this.results[this.selectedIndex];
-      
-      if (this.mode === 'files') {
-        vscode.postMessage({
-          type: 'openFile',
-          path: (result as FileResultDTO).path
-        });
-      } else {
-        const searchResult = result as SearchResultDTO;
-        vscode.postMessage({
-          type: 'openFile',
-          path: searchResult.path,
-          line: searchResult.line
-        });
+    this.runGuarded('openSelected', () => {
+      if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
+        const result = this.results[this.selectedIndex];
+        
+        if (this.mode === 'files') {
+          vscode.postMessage({
+            type: 'openFile',
+            path: (result as FileResultDTO).path
+          });
+        } else {
+          const searchResult = result as SearchResultDTO;
+          vscode.postMessage({
+            type: 'openFile',
+            path: searchResult.path,
+            line: searchResult.line
+          });
+        }
       }
-    }
+    });
   }
 
   getSelectedResult(): { path: string; line: number; column: number; matchText: string } | null {
@@ -182,56 +201,60 @@ export class ResultsList {
   }
 
   private notifySelection(): void {
-    if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
-      const result = this.results[this.selectedIndex];
-      
-      if (this.mode === 'files') {
-        vscode.postMessage({
-          type: 'resultSelected',
-          path: (result as FileResultDTO).path
-        });
-      } else {
-        const searchResult = result as SearchResultDTO;
-        vscode.postMessage({
-          type: 'resultSelected',
-          path: searchResult.path,
-          line: searchResult.line
-        });
+    this.runGuarded('notifySelection', () => {
+      if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
+        const result = this.results[this.selectedIndex];
+        
+        if (this.mode === 'files') {
+          vscode.postMessage({
+            type: 'resultSelected',
+            path: (result as FileResultDTO).path
+          });
+        } else {
+          const searchResult = result as SearchResultDTO;
+          vscode.postMessage({
+            type: 'resultSelected',
+            path: searchResult.path,
+            line: searchResult.line
+          });
+        }
       }
-    }
+    });
   }
 
   private render(): void {
-    if (!this.container) {
-      return;
-    }
-
-    if (this.results.length === 0) {
-      let placeholderText = 'No results yet. Start searching...';
-      
-      if (this.currentSearchMode === 'findInOpenFiles') {
-        placeholderText = 'No files are currently open';
+    this.runGuarded('render', () => {
+      if (!this.container) {
+        return;
       }
-      
+
+      if (this.results.length === 0) {
+        let placeholderText = 'No results yet. Start searching...';
+        
+        if (this.currentSearchMode === 'findInOpenFiles') {
+          placeholderText = 'No files are currently open';
+        }
+        
+        this.container.innerHTML = `
+          <div class="results-list">
+            <div class="results-placeholder">${placeholderText}</div>
+          </div>
+        `;
+        return;
+      }
+
+      const itemsHTML = this.mode === 'files' 
+        ? this.renderFileResults() 
+        : this.renderSearchResults();
+
       this.container.innerHTML = `
         <div class="results-list">
-          <div class="results-placeholder">${placeholderText}</div>
+          ${itemsHTML}
         </div>
       `;
-      return;
-    }
 
-    const itemsHTML = this.mode === 'files' 
-      ? this.renderFileResults() 
-      : this.renderSearchResults();
-
-    this.container.innerHTML = `
-      <div class="results-list">
-        ${itemsHTML}
-      </div>
-    `;
-
-    this.attachEventListeners();
+      this.attachEventListeners();
+    });
   }
 
   private renderFileResults(): string {
@@ -374,66 +397,72 @@ export class ResultsList {
   }
 
   private attachEventListeners(): void {
-    if (!this.container) {
-      return;
-    }
+    this.runGuarded('attachEventListeners', () => {
+      if (!this.container) {
+        return;
+      }
 
-    const items = this.container.querySelectorAll('.result-item');
-    items.forEach((item) => {
-      // Prevent focus theft - keep focus on search input
-      item.addEventListener('mousedown', (e) => {
-        e.preventDefault();
+      const items = this.container.querySelectorAll('.result-item');
+      items.forEach((item) => {
+        // Prevent focus theft - keep focus on search input
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+        });
+        item.addEventListener('click', this.handleClick.bind(this));
+        item.addEventListener('dblclick', this.handleDoubleClick.bind(this));
       });
-      item.addEventListener('click', this.handleClick.bind(this));
-      item.addEventListener('dblclick', this.handleDoubleClick.bind(this));
     });
   }
 
   private handleClick(event: Event): void {
-    const target = event.currentTarget as HTMLElement;
-    const index = parseInt(target.dataset.index || '-1', 10);
-    
-    if (index >= 0 && index < this.results.length) {
-      this.updateSelection(index);
+    this.runGuarded('handleClick', () => {
+      const target = event.currentTarget as HTMLElement;
+      const index = parseInt(target.dataset.index || '-1', 10);
       
-      const result = this.results[index];
-      if (this.mode === 'files') {
-        vscode.postMessage({
-          type: 'resultSelected',
-          path: (result as FileResultDTO).path
-        });
-      } else {
-        const searchResult = result as SearchResultDTO;
-        vscode.postMessage({
-          type: 'resultSelected',
-          path: searchResult.path,
-          line: searchResult.line
-        });
+      if (index >= 0 && index < this.results.length) {
+        this.updateSelection(index);
+        
+        const result = this.results[index];
+        if (this.mode === 'files') {
+          vscode.postMessage({
+            type: 'resultSelected',
+            path: (result as FileResultDTO).path
+          });
+        } else {
+          const searchResult = result as SearchResultDTO;
+          vscode.postMessage({
+            type: 'resultSelected',
+            path: searchResult.path,
+            line: searchResult.line
+          });
+        }
       }
-    }
+    });
   }
 
   private handleDoubleClick(event: Event): void {
-    const target = event.currentTarget as HTMLElement;
-    const index = parseInt(target.dataset.index || '-1', 10);
-    
-    if (index >= 0 && index < this.results.length) {
-      const result = this.results[index];
+    this.runGuarded('handleDoubleClick', () => {
+      const target = event.currentTarget as HTMLElement;
+      const index = parseInt(target.dataset.index || '-1', 10);
       
-      if (this.mode === 'files') {
-        vscode.postMessage({
-          type: 'openFile',
-          path: (result as FileResultDTO).path
-        });
-      } else {
-        const searchResult = result as SearchResultDTO;
-        vscode.postMessage({
-          type: 'openFile',
-          path: searchResult.path,
-          line: searchResult.line
-        });
+      if (index >= 0 && index < this.results.length) {
+        const result = this.results[index];
+        
+        if (this.mode === 'files') {
+          vscode.postMessage({
+            type: 'openFile',
+            path: (result as FileResultDTO).path
+          });
+        } else {
+          const searchResult = result as SearchResultDTO;
+          vscode.postMessage({
+            type: 'openFile',
+            path: searchResult.path,
+            line: searchResult.line
+          });
+        }
       }
-    }
+    });
   }
 
   private escapeHtml(text: string): string {
@@ -492,5 +521,33 @@ export class ResultsList {
       }
     }
     return this.results.length - 1;
+  }
+
+  private runGuarded(context: string, action: () => void): void {
+    try {
+      action();
+    } catch (error) {
+      this.handleError(error, context);
+    }
+  }
+
+  private handleError(error: unknown, context: string): void {
+    this.errorCount += 1;
+    console.error(`[Polaris Webview] ResultsList error in ${context}:`, error);
+
+    if (!this.container || this.errorCount > 3) {
+      return;
+    }
+
+    const message =
+      error instanceof Error ? error.message : 'Unexpected error';
+
+    this.container.innerHTML = `
+      <div class="results-list">
+        <div class="results-placeholder">
+          Results unavailable. ${this.escapeHtml(message)}
+        </div>
+      </div>
+    `;
   }
 }

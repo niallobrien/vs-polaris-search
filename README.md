@@ -20,6 +20,8 @@ Fast, beautiful search and replace for VS Code.
 
 💎 **Modern UI** - Clean, responsive interface with file icons and line numbers
 
+🕒 **Search History** - Quickly recall your most recent searches (last 20)
+
 📝 **Multi-line Search** - Search across multiple lines with full regex support
 
 🌐 **Glob Pattern Filtering** - Include or exclude files using glob patterns
@@ -29,6 +31,8 @@ Fast, beautiful search and replace for VS Code.
 📏 **Large File Handling** - Smart 200-line context window for files over 1000 lines
 
 🔄 **Stale File Detection** - Automatic refresh before replace operations
+
+🛡️ **Error Boundaries** - Webview components fail gracefully without breaking the entire UI
 
 🛠️ **Tool Detection Priority** - Automatically uses fd > ripgrep > VS Code API based on availability
 
@@ -84,6 +88,16 @@ Toggle search behavior with these options:
 | `Cmd+Shift+H` / `Ctrl+Shift+H` | Toggle replace panel                 |
 | `Cmd+F` / `Ctrl+F`             | Focus search input                   |
 | `Cmd+Enter` / `Ctrl+Enter`     | Replace all occurrences              |
+| `Alt+↑` / `Alt+↓`              | Cycle search history                 |
+
+## Search History
+
+Polaris Search keeps a rolling list of your most recent searches to help you reuse queries quickly.
+
+- Stores up to 20 recent searches
+- De-duplicates identical entries so your latest query stays at the top
+- Cycle through history in the search box with `Alt+↑` / `Alt+↓`
+- History is saved per-user using VS Code extension global state
 
 ### Commands
 
