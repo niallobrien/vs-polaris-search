@@ -88,7 +88,10 @@ class Highlighter {
     if (this.shiki) {
       try {
         const shikiTheme = this.shiki.getTheme(themeId);
-        const bgColor = shikiTheme.bg || shikiTheme.settings?.background;
+        const settingsBackground = shikiTheme.settings?.find(
+          (setting) => setting.settings?.background,
+        )?.settings?.background;
+        const bgColor = shikiTheme.bg || settingsBackground;
         if (bgColor) {
           this.themeBackgroundColors.set(theme, bgColor);
           console.log(
