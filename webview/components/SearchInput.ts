@@ -153,7 +153,7 @@ export class SearchInput {
       this.inputElement.scrollHeight > this.MAX_HEIGHT ? 'auto' : 'hidden';
   }
 
-  private triggerSearch(): void {
+  private triggerSearch(saveHistory: boolean = true): void {
     if (!this.inputElement) return;
     
     const query = this.inputElement.value;
@@ -164,7 +164,9 @@ export class SearchInput {
       ...extraParams
     });
 
-    this.maybeSaveHistory(query);
+    if (saveHistory) {
+      this.maybeSaveHistory(query);
+    }
   }
 
   private handleInput(event: Event): void {
@@ -276,13 +278,16 @@ export class SearchInput {
     if (entry !== undefined) {
       this.inputElement.value = entry;
       this.autoResize();
-      this.triggerSearch();
+      this.triggerSearch(false);
     }
   }
 
   private maybeSaveHistory(query: string): void {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
+      return;
+    }
+    if (this.history.includes(trimmed)) {
       return;
     }
     if (trimmed === this.lastHistoryQuery) {

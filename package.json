@@ -30,7 +30,8 @@
   "activationEvents": [
     "onCommand:polaris-search.findInFiles",
     "onCommand:polaris-search.findFiles",
-    "onCommand:polaris-search.findInOpenFiles"
+    "onCommand:polaris-search.findInOpenFiles",
+    "onCommand:polaris-search.clearSearchHistory"
   ],
   "contributes": {
     "commands": [
@@ -52,6 +53,11 @@
       {
         "command": "polaris-search.changePreviewTheme",
         "title": "Change Preview Theme",
+        "category": "Polaris Search"
+      },
+      {
+        "command": "polaris-search.clearSearchHistory",
+        "title": "Clear Search History",
         "category": "Polaris Search"
       }
     ],

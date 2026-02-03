@@ -309,6 +309,9 @@ export class PolarisPanel {
     }
 
     const history = this.getSearchHistory();
+    if (history.includes(trimmed)) {
+      return;
+    }
     const nextHistory = [
       trimmed,
       ...history.filter((item) => item !== trimmed),
