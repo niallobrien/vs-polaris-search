@@ -111,8 +111,27 @@ async function runSearch(options: SearchMessage["options"]): Promise<void> {
   const results: SearchResultDTO[] = [];
   const args = buildArgs(options);
 
+  if (rgProcess) {
+    try {
+      rgProcess.kill();
+    } catch {
+      // Ignore kill errors when replacing a prior search.
+    }
+    rgProcess = null;
+  }
+
   rgProcess = spawn("rg", args);
-  const rl = readline.createInterface({ input: rgProcess.stdout });
+
+  const stdout = rgProcess.stdout;
+  if (!stdout) {
+    sendMessage({ type: "error", error: "rg stdout stream unavailable" });
+    rgProcess = null;
+    return;
+  }
+
+  const rl = readline.createInterface({
+    input: stdout as NodeJS.ReadableStream,
+  });
   let stderr = "";
   let settled = false;
   const lineBuffer: string[] = [];
@@ -122,7 +141,11 @@ async function runSearch(options: SearchMessage["options"]): Promise<void> {
     if (settled) return;
     settled = true;
     rl.removeAllListeners();
+    rl.close();
+    rgProcess?.stdout?.removeAllListeners();
+    rgProcess?.stderr?.removeAllListeners();
     rgProcess?.removeAllListeners();
+    rgProcess = null;
     fn();
   };
 
@@ -201,7 +224,7 @@ async function runSearch(options: SearchMessage["options"]): Promise<void> {
     void processLines();
   });
 
-  rgProcess.stderr.on("data", (data) => {
+  rgProcess.stderr?.on("data", (data) => {
     stderr += data.toString();
   });
 
